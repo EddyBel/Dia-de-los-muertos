@@ -8,8 +8,6 @@
   <title>Ofrenda de Recuerdos</title>
 
   <script src="https://cdn.tailwindcss.com"></script>
-
-  <!-- EmailJS -->
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 
   <script type="importmap">
@@ -61,7 +59,6 @@
     <span class="text-sm tracking-[.25em] uppercase text-amber-200">
       Memoria Viva
     </span>
-
     <span class="text-xs text-rose-200/70">
       Día de Muertos
     </span>
@@ -70,10 +67,7 @@
 
 <main class="mx-auto max-w-6xl px-5 relative z-10">
 
-  <!-- HERO -->
-
   <section class="grid items-center gap-10 py-14 md:grid-cols-2 md:py-20">
-
     <div>
       <p class="mb-4 text-xs uppercase tracking-[.35em] text-amber-300">
         Una luz que nunca se apaga
@@ -82,9 +76,7 @@
       <h1 class="font-serif text-5xl leading-tight sm:text-6xl">
         Los recuerdos
         <br>
-        <span class="italic text-amber-300">
-          siempre vuelven
-        </span>
+        <span class="italic text-amber-300">siempre vuelven</span>
       </h1>
 
       <p class="mt-6 max-w-lg leading-7 text-rose-100/75">
@@ -100,18 +92,12 @@
       </a>
     </div>
 
-    <!-- THREE JS -->
-
     <div class="glow overflow-hidden rounded-3xl border border-amber-100/10 bg-[#211522]">
-
       <div class="flex justify-between px-5 pt-5">
         <span class="text-xs uppercase tracking-widest text-amber-200">
           Ofrenda interactiva
         </span>
-
-        <span class="text-xs text-rose-100/50">
-          Vista 3D
-        </span>
+        <span class="text-xs text-rose-100/50">Vista 3D</span>
       </div>
 
       <canvas id="altar"></canvas>
@@ -119,43 +105,26 @@
       <p class="px-5 pb-5 text-center text-xs text-rose-100/50">
         Arrastra para explorar la ofrenda.
       </p>
-
     </div>
-
   </section>
 
-
-  <!-- FORMULARIO -->
-
   <section id="crear" class="mx-auto max-w-3xl py-10">
-
     <div class="mb-8 text-center">
-
       <p class="text-xs uppercase tracking-widest text-amber-300">
         Tu homenaje
       </p>
-
-      <h2 class="mt-3 font-serif text-4xl">
-        Enciende una memoria
-      </h2>
-
+      <h2 class="mt-3 font-serif text-4xl">Enciende una memoria</h2>
       <p class="mt-3 text-sm text-rose-100/65">
         Comparte tus recuerdos y forma parte de esta ofrenda.
       </p>
-
     </div>
-
 
     <form id="memoryForm"
           class="glow rounded-3xl border border-amber-100/10 bg-[#211522] p-6 sm:p-8">
 
       <div class="grid gap-5 sm:grid-cols-2">
-
         <label>
-          <span class="mb-2 block text-sm text-amber-100">
-            Tu nombre *
-          </span>
-
+          <span class="mb-2 block text-sm text-amber-100">Tu nombre *</span>
           <input
             id="name"
             name="name"
@@ -170,7 +139,6 @@
           <span class="mb-2 block text-sm text-amber-100">
             Correo electrónico *
           </span>
-
           <input
             id="email"
             name="email"
@@ -181,44 +149,22 @@
             placeholder="tu@correo.com"
             class="field w-full rounded-xl px-4 py-3">
         </label>
-
       </div>
 
-
-      <!-- FOTOGRAFIAS -->
-
       <div class="mt-7">
-
         <div class="flex justify-between items-end">
-
           <div>
-            <label class="block text-sm text-amber-100">
-              Fotografías
-            </label>
-
-            <p class="mt-1 text-xs text-rose-100/55">
-              Máximo 5 imágenes
-            </p>
+            <label class="block text-sm text-amber-100">Fotografías</label>
+            <p class="mt-1 text-xs text-rose-100/55">Máximo 5 imágenes</p>
           </div>
-
-          <span id="photoCount" class="text-xs text-amber-300">
-            0 / 5
-          </span>
-
+          <span id="photoCount" class="text-xs text-amber-300">0 / 5</span>
         </div>
 
         <label for="photos"
                class="mt-3 flex cursor-pointer flex-col items-center rounded-2xl border border-dashed border-amber-200/30 bg-[#2a1b2b] px-5 py-8 text-center hover:border-amber-300">
-
           <span class="mb-2 text-3xl text-amber-300">＋</span>
-
-          <span class="font-medium">
-            Seleccionar fotografías
-          </span>
-
-          <span class="mt-1 text-xs text-rose-100/50">
-            JPG, PNG o WebP
-          </span>
+          <span class="font-medium">Seleccionar fotografías</span>
+          <span class="mt-1 text-xs text-rose-100/50">JPG, PNG o WebP</span>
 
           <input
             id="photos"
@@ -226,20 +172,14 @@
             accept="image/jpeg,image/png,image/webp"
             multiple
             class="hidden">
-
         </label>
 
         <div id="preview"
              class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-5">
         </div>
-
       </div>
 
-
-      <!-- CONSENTIMIENTO -->
-
       <label class="mt-6 flex items-start gap-3 text-xs leading-5 text-rose-100/65">
-
         <input
           id="consent"
           type="checkbox"
@@ -254,17 +194,13 @@
           Las fotografías originales no serán almacenadas.
           Se enviará únicamente la composición final de la ofrenda.
         </span>
-
       </label>
-
 
       <button
         id="submitBtn"
         type="submit"
         class="mt-7 w-full rounded-full bg-amber-400 px-6 py-4 font-semibold text-stone-950 hover:bg-amber-300 disabled:opacity-50">
-
         Crear y enviar mi ofrenda
-
       </button>
 
       <p id="status"
@@ -272,398 +208,257 @@
          aria-live="polite"
          class="mt-4 text-center text-sm text-amber-200">
       </p>
-
     </form>
-
   </section>
-
 
   <footer class="mt-16 border-t border-amber-100/10 py-8 text-center text-xs text-rose-100/40">
     Hecho para recordar · Memoria, amor y tradición.
   </footer>
-
 </main>
 
-
 <script type="module">
-
 import * as THREE from 'three';
-
 
 /* =====================================================
    CONFIGURACIÓN
 ===================================================== */
 
 // EMAILJS
-
 const EMAILJS_PUBLIC_KEY = 'TU_PUBLIC_KEY';
-
 const EMAILJS_SERVICE_ID = 'TU_SERVICE_ID';
-
 const EMAILJS_TEMPLATE_ID = 'TU_TEMPLATE_ID';
 
+// GOOGLE FORMS
+// Este debe ser el ID del FORMULARIO, no el de la hoja.
+const GOOGLE_FORM_ACTION =
+  'https://docs.google.com/forms/d/e/TU_FORM_ID/formResponse';
 
-// GOOGLE SHEETS: SOLO LECTURA PÚBLICA
-// No utilizar la URL de edición como endpoint de escritura.
+// IDs reales de los campos del formulario.
+const ENTRY_NAME = 'entry.ID_NOMBRE';
+const ENTRY_EMAIL = 'entry.ID_CORREO';
 
-const GOOGLE_SHEETS_CSV_URL =
-  'https://docs.google.com/spreadsheets/d/1LwZET_i9KXWiDlr6JxhBDfXIXYUcd2hzwW_vQl1lpIQ/gviz/tq?tqx=out:csv&gid=0';
-
+// Google Forms genera automáticamente la marca de tiempo
+// en la primera columna de la hoja vinculada.
 
 /* =====================================================
-   THREE JS
+   ELEMENTOS
 ===================================================== */
 
 const canvas = document.querySelector('#altar');
+const form = document.querySelector('#memoryForm');
+const submitBtn = document.querySelector('#submitBtn');
+const status = document.querySelector('#status');
+const fileInput = document.querySelector('#photos');
+const preview = document.querySelector('#preview');
+const photoCount = document.querySelector('#photoCount');
+
+/* =====================================================
+   THREE.JS: ESCENA
+===================================================== */
 
 const scene = new THREE.Scene();
-
 scene.background = new THREE.Color('#211522');
 
-const camera = new THREE.PerspectiveCamera(
-  38,
-  1,
-  0.1,
-  100
-);
-
+const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 100);
 camera.position.set(0, 1.5, 9.5);
-
 camera.lookAt(0, 0, 0);
-
 
 const renderer = new THREE.WebGLRenderer({
   canvas,
   antialias: true,
-
-  // IMPORTANTE:
-  // Conserva el buffer para poder generar la captura PNG.
   preserveDrawingBuffer: true
 });
 
-renderer.setPixelRatio(
-  Math.min(window.devicePixelRatio, 2)
-);
-
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 
+scene.add(new THREE.AmbientLight(0xffd6a0, 1.6));
 
-/* =====================================================
-   ILUMINACIÓN
-===================================================== */
-
-scene.add(
-  new THREE.AmbientLight(0xffd6a0, 1.6)
-);
-
-const light = new THREE.PointLight(
-  0xffa83d,
-  45,
-  30
-);
-
+const light = new THREE.PointLight(0xffa83d, 45, 30);
 light.position.set(0, 4, 5);
-
 scene.add(light);
 
-
-/* =====================================================
-   GRUPO DE OFRENDA
-===================================================== */
-
 const altar = new THREE.Group();
-
 scene.add(altar);
 
-
 function material(color) {
-
   return new THREE.MeshStandardMaterial({
     color,
     roughness: 0.8
   });
-
 }
 
-
-function box(w,h,d,x,y,z,color) {
-
+function box(w, h, d, x, y, z, color) {
   const mesh = new THREE.Mesh(
-    new THREE.BoxGeometry(w,h,d),
+    new THREE.BoxGeometry(w, h, d),
     material(color)
   );
 
-  mesh.position.set(x,y,z);
-
+  mesh.position.set(x, y, z);
   mesh.castShadow = true;
-
   mesh.receiveShadow = true;
-
   altar.add(mesh);
 
   return mesh;
-
 }
 
-
 /* =====================================================
-   NIVELES
+   NIVELES DEL ALTAR
 ===================================================== */
 
-box(7.2,.28,2.2,0,-1.45,0,'#70452f');
-
-box(6.1,.24,1.8,0,-.72,-.12,'#a66a3e');
-
-box(4.7,.22,1.5,0,-.05,-.2,'#d29a53');
-
+box(7.2, .28, 2.2, 0, -1.45, 0, '#70452f');
+box(6.1, .24, 1.8, 0, -.72, -.12, '#a66a3e');
+box(4.7, .22, 1.5, 0, -.05, -.2, '#d29a53');
 
 /* =====================================================
    VELADORAS
 ===================================================== */
 
-for (const x of [-2.75,2.75]) {
-
-  box(.28,.8,.28,x,-.88,.62,'#f4dfb0');
+for (const x of [-2.75, 2.75]) {
+  box(.28, .8, .28, x, -.88, .62, '#f4dfb0');
 
   const flame = new THREE.Mesh(
-    new THREE.ConeGeometry(.09,.28,12),
-    new THREE.MeshBasicMaterial({
-      color: '#ffb52e'
-    })
+    new THREE.ConeGeometry(.09, .28, 12),
+    new THREE.MeshBasicMaterial({ color: '#ffb52e' })
   );
 
-  flame.position.set(x,-.28,.62);
-
+  flame.position.set(x, -.28, .62);
   altar.add(flame);
 
-  const candleLight = new THREE.PointLight(
-    0xff9e36,
-    2.5,
-    3
-  );
-
-  candleLight.position.set(x,-.2,.8);
-
+  const candleLight = new THREE.PointLight(0xff9e36, 2.5, 3);
+  candleLight.position.set(x, -.2, .8);
   altar.add(candleLight);
-
 }
-
 
 /* =====================================================
    FLORES DE CEMPASÚCHIL
 ===================================================== */
 
-for (let i=0; i<18; i++) {
-
+for (let i = 0; i < 18; i++) {
   const a = i / 18 * Math.PI * 2;
-
-  const x = Math.cos(a)*3.1;
-
-  const z = Math.sin(a)*.72;
+  const x = Math.cos(a) * 3.1;
+  const z = Math.sin(a) * .72;
 
   const flower = new THREE.Mesh(
-    new THREE.SphereGeometry(.16,12,10),
+    new THREE.SphereGeometry(.16, 12, 10),
     material('#ed8b16')
   );
 
-  flower.scale.set(1,.55,1);
-
-  flower.position.set(x,-1.25,z);
-
+  flower.scale.set(1, .55, 1);
+  flower.position.set(x, -1.25, z);
   altar.add(flower);
 
   const center = new THREE.Mesh(
-    new THREE.SphereGeometry(.07,10,8),
+    new THREE.SphereGeometry(.07, 10, 8),
     material('#6c321b')
   );
 
-  center.position.set(x,-1.20,z);
-
+  center.position.set(x, -1.20, z);
   altar.add(center);
-
 }
-
 
 /* =====================================================
    PAPEL PICADO
 ===================================================== */
 
-for (let i=0; i<11; i++) {
-
+for (let i = 0; i < 11; i++) {
   const paper = new THREE.Mesh(
-
-    new THREE.PlaneGeometry(.34,.42),
-
+    new THREE.PlaneGeometry(.34, .42),
     new THREE.MeshBasicMaterial({
-
-      color: i%2 ? '#c34b61' : '#e9a63b',
-
+      color: i % 2 ? '#c34b61' : '#e9a63b',
       side: THREE.DoubleSide
-
     })
-
   );
 
-  paper.position.set(-3.3+i*.66,2.25,0);
-
+  paper.position.set(-3.3 + i * .66, 2.25, 0);
   altar.add(paper);
-
 }
 
-
 /* =====================================================
-   SISTEMA DE FOTOGRAFÍAS
+   TARJETAS 3D DE FOTOGRAFÍAS
 ===================================================== */
 
 const cardGroup = new THREE.Group();
-
 altar.add(cardGroup);
 
 let cards = [];
-
 let loadedImages = [];
-
+let selectedFiles = [];
+let objectUrls = [];
 let imageGeneration = 0;
 
-
-/*
-  Crea una textura a partir de una imagen.
-
-  Se utiliza drawImage con coordenadas de recorte
-  correctas para conservar la proporción de la foto.
-*/
-
 function createTexture(image) {
-
   const c = document.createElement('canvas');
-
   c.width = 512;
-
   c.height = 640;
 
   const ctx = c.getContext('2d');
 
-  // Marco exterior.
-
   ctx.fillStyle = '#d8b98c';
-
-  ctx.fillRect(0,0,512,640);
-
-  // Fondo interior.
+  ctx.fillRect(0, 0, 512, 640);
 
   ctx.fillStyle = '#fff8e9';
-
-  ctx.fillRect(30,30,452,520);
-
+  ctx.fillRect(30, 30, 452, 520);
 
   if (image) {
-
     const sourceWidth = image.width;
-
     const sourceHeight = image.height;
-
     const targetWidth = 428;
-
     const targetHeight = 470;
 
-    const sourceRatio = sourceWidth/sourceHeight;
-
-    const targetRatio = targetWidth/targetHeight;
+    const sourceRatio = sourceWidth / sourceHeight;
+    const targetRatio = targetWidth / targetHeight;
 
     let sx = 0;
-
     let sy = 0;
-
     let sw = sourceWidth;
-
     let sh = sourceHeight;
 
-
-    // Recorte centrado manteniendo la proporción.
-
     if (sourceRatio > targetRatio) {
-
       sw = sourceHeight * targetRatio;
-
-      sx = (sourceWidth-sw)/2;
-
+      sx = (sourceWidth - sw) / 2;
     } else {
-
-      sh = sourceWidth/targetRatio;
-
-      sy = (sourceHeight-sh)/2;
-
+      sh = sourceWidth / targetRatio;
+      sy = (sourceHeight - sh) / 2;
     }
 
-
     ctx.save();
-
     ctx.beginPath();
-
-    ctx.rect(42,42,targetWidth,targetHeight);
-
+    ctx.rect(42, 42, targetWidth, targetHeight);
     ctx.clip();
 
     ctx.drawImage(
-
       image,
-
-      sx,sy,sw,sh,
-
-      42,42,targetWidth,targetHeight
-
+      sx, sy, sw, sh,
+      42, 42, targetWidth, targetHeight
     );
 
     ctx.restore();
-
-
   } else {
-
     ctx.fillStyle = '#392439';
-
-    ctx.fillRect(42,42,428,470);
+    ctx.fillRect(42, 42, 428, 470);
 
     ctx.fillStyle = '#f4b44d';
-
     ctx.font = '80px Georgia';
-
     ctx.textAlign = 'center';
-
-    ctx.fillText('✦',256,280);
-
+    ctx.fillText('✦', 256, 280);
   }
 
-
   ctx.fillStyle = '#4b2a2b';
-
   ctx.font = 'italic 25px Georgia';
-
   ctx.textAlign = 'center';
-
-  ctx.fillText('Con amor y memoria',256,578);
-
+  ctx.fillText('Con amor y memoria', 256, 578);
 
   const texture = new THREE.CanvasTexture(c);
-
   texture.colorSpace = THREE.SRGBColorSpace;
-
   texture.needsUpdate = true;
 
   return texture;
-
 }
 
-
-/*
-  Elimina las tarjetas anteriores y crea las nuevas.
-*/
-
 function updateCards(images = []) {
-
   cards.forEach(card => {
-
     cardGroup.remove(card);
-
     card.geometry.dispose();
 
     if (card.material.map) {
@@ -671,208 +466,105 @@ function updateCards(images = []) {
     }
 
     card.material.dispose();
-
   });
 
   cards = [];
 
+  const list = images.length ? images : [null, null, null];
 
-  // Mostrar tarjetas decorativas cuando no hay fotografías.
-
-  const list = images.length
-    ? images
-    : [null,null,null];
-
-
-  list.forEach((image,i) => {
-
+  list.forEach((image, i) => {
     const texture = createTexture(image);
 
-    const geometry = new THREE.PlaneGeometry(
-      1.22,
-      1.52
-    );
+    const geometry = new THREE.PlaneGeometry(1.22, 1.52);
 
     const mat = new THREE.MeshStandardMaterial({
-
       map: texture,
-
       side: THREE.DoubleSide,
-
       roughness: 0.85
-
     });
 
-    const mesh = new THREE.Mesh(
-      geometry,
-      mat
-    );
-
-    const spread = i-(list.length-1)/2;
+    const mesh = new THREE.Mesh(geometry, mat);
+    const spread = i - (list.length - 1) / 2;
 
     mesh.position.set(
-
-      spread*1.38,
-
+      spread * 1.38,
       .85,
-
-      Math.abs(spread)*-.08
-
+      Math.abs(spread) * -.08
     );
 
-    mesh.rotation.y = spread*-.08;
+    mesh.rotation.y = spread * -.08;
 
     cardGroup.add(mesh);
-
     cards.push(mesh);
-
   });
 
-
-  // Solicitar un nuevo render.
-
-  renderer.render(scene,camera);
-
+  renderer.render(scene, camera);
 }
 
-
 /* =====================================================
-   CARGA CORRECTA DE IMÁGENES
+   DECODIFICACIÓN DE IMÁGENES
 ===================================================== */
 
-/*
-  El problema anterior era que la carga de imágenes
-  no estaba suficientemente controlada.
-
-  Ahora:
-
-  1. Se comprueba el formato.
-  2. Se comprueba el tamaño.
-  3. Se decodifica mediante createImageBitmap.
-  4. Se espera a que todas estén listas.
-  5. Se actualizan las texturas de Three.js.
-  6. Se evita que una selección antigua sobrescriba
-     una selección nueva.
-*/
-
 async function decodeImage(file) {
-
   if (!file.type.startsWith('image/')) {
     throw new Error('Formato de imagen inválido');
   }
 
   if (typeof createImageBitmap === 'function') {
-
     return await createImageBitmap(file);
-
   }
-
-
-  // Fallback para navegadores sin createImageBitmap.
 
   const url = URL.createObjectURL(file);
 
   try {
-
     const image = new Image();
-
     image.src = url;
-
     await image.decode();
-
     return image;
-
   } finally {
-
     URL.revokeObjectURL(url);
-
   }
-
 }
 
+function clearPreview() {
+  objectUrls.forEach(url => URL.revokeObjectURL(url));
+  objectUrls = [];
+  preview.replaceChildren();
+}
+
+function clearImages() {
+  loadedImages.forEach(image => {
+    if (typeof image.close === 'function') {
+      image.close();
+    }
+  });
+
+  loadedImages = [];
+}
+
+function resetPhotos() {
+  imageGeneration++;
+  selectedFiles = [];
+  clearPreview();
+  clearImages();
+  fileInput.value = '';
+  photoCount.textContent = '0 / 5';
+  updateCards();
+}
 
 /* =====================================================
    SELECTOR Y PREVISUALIZACIÓN
 ===================================================== */
 
-const fileInput = document.querySelector('#photos');
-
-const preview = document.querySelector('#preview');
-
-const photoCount = document.querySelector('#photoCount');
-
-const status = document.querySelector('#status');
-
-let selectedFiles = [];
-
-let objectUrls = [];
-
-
-function clearPreview() {
-
-  objectUrls.forEach(url => {
-    URL.revokeObjectURL(url);
-  });
-
-  objectUrls = [];
-
-  preview.replaceChildren();
-
-}
-
-
-function clearImages() {
-
-  loadedImages.forEach(image => {
-
-    if (typeof image.close === 'function') {
-      image.close();
-    }
-
-  });
-
-  loadedImages = [];
-
-}
-
-
-function resetPhotos() {
-
-  selectedFiles = [];
-
-  clearPreview();
-
-  clearImages();
-
-  photoCount.textContent = '0 / 5';
-
-  updateCards();
-
-}
-
-
 fileInput.addEventListener('change', async () => {
-
   const generation = ++imageGeneration;
-
   const files = Array.from(fileInput.files || []);
 
-
-  // Validación de cantidad.
-
   if (files.length > 5) {
-
-    status.textContent =
-      'Puedes seleccionar máximo 5 fotografías.';
-
+    status.textContent = 'Puedes seleccionar máximo 5 fotografías.';
     fileInput.value = '';
-
     return;
-
   }
-
-
-  // Validación de formato.
 
   const validTypes = [
     'image/jpeg',
@@ -881,525 +573,351 @@ fileInput.addEventListener('change', async () => {
   ];
 
   if (files.some(file => !validTypes.includes(file.type))) {
-
-    status.textContent =
-      'Solo se permiten fotografías JPG, PNG o WebP.';
-
+    status.textContent = 'Solo se permiten fotografías JPG, PNG o WebP.';
     fileInput.value = '';
-
     return;
-
   }
 
-
-  // Validación de peso.
-
-  if (files.some(file => file.size > 12*1024*1024)) {
-
-    status.textContent =
-      'Cada fotografía debe pesar menos de 12 MB.';
-
+  if (files.some(file => file.size > 12 * 1024 * 1024)) {
+    status.textContent = 'Cada fotografía debe pesar menos de 12 MB.';
     fileInput.value = '';
-
     return;
-
   }
-
 
   selectedFiles = files;
-
   clearPreview();
-
   clearImages();
 
   status.textContent = 'Procesando fotografías…';
 
-
-  // Previsualización HTML.
-
   files.forEach(file => {
-
     const url = URL.createObjectURL(file);
-
     objectUrls.push(url);
 
     const card = document.createElement('div');
-
     card.className =
       'overflow-hidden rounded-xl border border-amber-100/10 bg-[#2a1b2b]';
 
     const img = document.createElement('img');
-
     img.src = url;
-
     img.alt = 'Fotografía seleccionada';
-
     img.className = 'h-28 w-full object-cover';
 
     const name = document.createElement('p');
-
     name.className =
       'truncate px-2 py-2 text-xs text-rose-100/70';
-
     name.textContent = file.name;
 
-    card.append(img,name);
-
+    card.append(img, name);
     preview.append(card);
-
   });
-
 
   photoCount.textContent = `${files.length} / 5`;
 
-
   try {
-
-    // Decodificar todas las imágenes.
-
     const images = await Promise.all(
-
       files.map(file => decodeImage(file))
-
     );
 
-
-    // Ignorar cargas anteriores.
-
     if (generation !== imageGeneration) {
-
       images.forEach(image => image.close?.());
-
       return;
-
     }
-
 
     loadedImages = images;
-
-
-    // Crear tarjetas 3D.
-
     updateCards(loadedImages);
 
-    status.textContent =
-      'Fotografías cargadas correctamente.';
-
-
-  } catch(error) {
-
-    console.error('Error procesando imágenes:',error);
+    status.textContent = 'Fotografías cargadas correctamente.';
+  } catch (error) {
+    console.error('Error procesando imágenes:', error);
 
     if (generation === imageGeneration) {
-
-      status.textContent =
-        'No fue posible procesar alguna fotografía.';
-
+      status.textContent = 'No fue posible procesar alguna fotografía.';
       resetPhotos();
-
     }
-
   }
-
 });
-
 
 /* =====================================================
    INTERACCIÓN 3D
 ===================================================== */
 
 let dragging = false;
-
 let lastX = 0;
-
 let targetRotation = 0;
 
-
-canvas.addEventListener('pointerdown',e => {
-
+canvas.addEventListener('pointerdown', event => {
   dragging = true;
-
-  lastX = e.clientX;
-
-  canvas.setPointerCapture(e.pointerId);
-
+  lastX = event.clientX;
+  canvas.setPointerCapture(event.pointerId);
 });
 
-
-canvas.addEventListener('pointermove',e => {
-
+canvas.addEventListener('pointermove', event => {
   if (!dragging) return;
 
-  targetRotation += (e.clientX-lastX)*.008;
-
-  lastX = e.clientX;
-
+  targetRotation += (event.clientX - lastX) * .008;
+  lastX = event.clientX;
 });
 
-
-canvas.addEventListener('pointerup',() => {
-
+canvas.addEventListener('pointerup', () => {
   dragging = false;
-
 });
 
-
-canvas.addEventListener('pointercancel',() => {
-
+canvas.addEventListener('pointercancel', () => {
   dragging = false;
-
 });
-
 
 /* =====================================================
    RESPONSIVE
 ===================================================== */
 
 function resize() {
-
   const width = canvas.clientWidth;
-
   const height = canvas.clientHeight;
 
   if (!width || !height) return;
 
-  renderer.setSize(width,height,false);
+  renderer.setSize(width, height, false);
 
-  camera.aspect = width/height;
-
+  camera.aspect = width / height;
   camera.updateProjectionMatrix();
 
-  renderer.render(scene,camera);
-
+  renderer.render(scene, camera);
 }
 
-
 const resizeObserver = new ResizeObserver(resize);
-
 resizeObserver.observe(canvas);
-
 resize();
-
 
 /* =====================================================
    ANIMACIÓN
 ===================================================== */
 
 function animate() {
-
   requestAnimationFrame(animate);
 
   altar.rotation.y +=
-    (targetRotation-altar.rotation.y)*.06;
+    (targetRotation - altar.rotation.y) * .06;
 
   if (!dragging) {
     targetRotation += .0015;
   }
 
-  cards.forEach((card,i) => {
-
+  cards.forEach((card, i) => {
     card.position.y =
-      .85 + Math.sin(Date.now()*.001+i)*.025;
-
+      .85 + Math.sin(Date.now() * .001 + i) * .025;
   });
 
-  renderer.render(scene,camera);
-
+  renderer.render(scene, camera);
 }
 
 animate();
 
-
 /* =====================================================
-   CAPTURA PNG DEL CANVAS
+   CAPTURA PNG
 ===================================================== */
 
 function captureAltar() {
-
-  return new Promise((resolve,reject) => {
-
+  return new Promise((resolve, reject) => {
     try {
-
-      // Renderizar explícitamente antes de capturar.
-
-      renderer.render(scene,camera);
+      renderer.render(scene, camera);
 
       canvas.toBlob(blob => {
-
         if (!blob) {
-
-          reject(
-            new Error('No se pudo generar la captura PNG')
-          );
-
+          reject(new Error('No se pudo generar la captura PNG'));
           return;
-
         }
 
         resolve(blob);
-
-      },'image/png');
-
-    } catch(error) {
-
+      }, 'image/png');
+    } catch (error) {
       reject(error);
-
     }
-
   });
-
 }
 
-
-/*
-  Convierte Blob a Data URL Base64.
-  EmailJS utiliza este contenido como adjunto dinámico.
-*/
-
 function blobToBase64(blob) {
-
-  return new Promise((resolve,reject) => {
-
+  return new Promise((resolve, reject) => {
     const reader = new FileReader();
 
     reader.onload = () => resolve(reader.result);
-
     reader.onerror = () => reject(reader.error);
 
     reader.readAsDataURL(blob);
-
   });
-
 }
 
-
 /* =====================================================
-   GOOGLE SHEETS: LECTURA PÚBLICA
+   REGISTRO EN GOOGLE FORMS
 ===================================================== */
 
 /*
-  Esta función únicamente consulta la hoja.
-  No intenta escribir en ella.
+  El formulario vinculado a Google Sheets debe tener:
+  - Pregunta 1: Nombre
+  - Pregunta 2: Correo electrónico
 
-  Se deja preparada para mostrar información
-  pública de participación si se necesita.
+  Google Forms crea automáticamente la columna de fecha.
+  La hoja resultante tendrá:
+  A: Marca de tiempo
+  B: Nombre
+  C: Correo electrónico
+
+  Atención:
+  mode: no-cors impide leer la respuesta HTTP.
+  Por tanto, el navegador no puede verificar que Google
+  haya aceptado y guardado la respuesta.
 */
 
-async function loadPublicSheet() {
-
-  try {
-
-    const response = await fetch(
-      GOOGLE_SHEETS_CSV_URL
-    );
-
-    if (!response.ok) {
-      throw new Error('No se pudo consultar Google Sheets');
-    }
-
-    const csv = await response.text();
-
-    const rows = csv
-      .trim()
-      .split(/\r?\n/)
-      .filter(Boolean);
-
-    // La primera fila corresponde a encabezados.
-
-    const total = Math.max(0,rows.length-1);
-
-    console.info('Registros públicos:',total);
-
-    return total;
-
-  } catch(error) {
-
-    console.warn('Google Sheets no disponible:',error);
-
-    return null;
-
-  }
-
+function isGoogleFormsConfigured() {
+  return (
+    !GOOGLE_FORM_ACTION.includes('TU_FORM_ID') &&
+    !ENTRY_NAME.includes('ID_') &&
+    !ENTRY_EMAIL.includes('ID_')
+  );
 }
 
-loadPublicSheet();
+async function registerParticipant(name, email) {
+  if (!isGoogleFormsConfigured()) {
+    throw new Error('Google Forms no está configurado.');
+  }
 
+  const data = new URLSearchParams();
+
+  data.append(ENTRY_NAME, name);
+  data.append(ENTRY_EMAIL, email);
+
+  await fetch(GOOGLE_FORM_ACTION, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+    body: data
+  });
+
+  // Una respuesta opaca no confirma el registro.
+  return true;
+}
 
 /* =====================================================
-   ENVÍO AUTOMÁTICO DE CORREO
+   VALIDACIÓN DE CONFIGURACIÓN
 ===================================================== */
 
-const form = document.querySelector('#memoryForm');
+function isEmailJSConfigured() {
+  return (
+    !EMAILJS_PUBLIC_KEY.startsWith('TU_') &&
+    !EMAILJS_SERVICE_ID.startsWith('TU_') &&
+    !EMAILJS_TEMPLATE_ID.startsWith('TU_')
+  );
+}
 
-const submitBtn = document.querySelector('#submitBtn');
+/* =====================================================
+   ENVÍO DEL FORMULARIO
+===================================================== */
 
+form.addEventListener('submit', async event => {
+  event.preventDefault();
 
-form.addEventListener('submit', async e => {
-
-  e.preventDefault();
-
-
-  const name =
-    document.querySelector('#name').value.trim();
-
-  const email =
-    document.querySelector('#email').value.trim();
-
-  const consent =
-    document.querySelector('#consent').checked;
-
+  const name = document.querySelector('#name').value.trim();
+  const email = document.querySelector('#email').value.trim();
+  const consent = document.querySelector('#consent').checked;
 
   if (!name || !email || !consent) {
-
     status.textContent =
       'Completa los datos y acepta el consentimiento.';
-
     return;
-
   }
 
-
-  if (
-    EMAILJS_PUBLIC_KEY.startsWith('TU_') ||
-    EMAILJS_SERVICE_ID.startsWith('TU_') ||
-    EMAILJS_TEMPLATE_ID.startsWith('TU_')
-  ) {
-
+  if (!isEmailJSConfigured()) {
     status.textContent =
       'Configura primero las credenciales de EmailJS.';
-
     return;
-
   }
 
+  if (!isGoogleFormsConfigured()) {
+    status.textContent =
+      'Configura primero el formulario de Google Forms.';
+    return;
+  }
 
   if (typeof emailjs === 'undefined') {
-
-    status.textContent =
-      'No se pudo cargar EmailJS.';
-
+    status.textContent = 'No se pudo cargar EmailJS.';
     return;
-
   }
 
-
   submitBtn.disabled = true;
-
   submitBtn.textContent = 'Generando tu ofrenda…';
 
-  status.textContent =
-    'Preparando la imagen de tu recuerdo…';
-
+  let emailSent = false;
+  let registrationAttempted = false;
 
   try {
-
-    /*
-      PASO 1:
-      Capturar el canvas completo de Three.js.
-    */
+    // 1. Capturar la composición de Three.js.
+    status.textContent = 'Preparando la imagen de tu recuerdo…';
 
     const screenshotBlob = await captureAltar();
+    const screenshotBase64 = await blobToBase64(screenshotBlob);
 
+    // 2. Registrar los datos en Google Forms.
+    status.textContent = 'Enviando tus datos de participación…';
+    registrationAttempted = true;
 
-    /*
-      PASO 2:
-      Convertir la captura a Base64.
-    */
+    await registerParticipant(name, email);
 
-    const screenshotBase64 =
-      await blobToBase64(screenshotBlob);
-
-
-    /*
-      PASO 3:
-      Preparar parámetros de la plantilla.
-    */
-
+    // 3. Preparar los parámetros de EmailJS.
     const templateParams = {
-
-      name: name,
-
-      email: email,
-
+      name,
+      email,
       to_email: email,
-
       photo_count: selectedFiles.length,
-
       ofrenda_png: screenshotBase64
-
     };
 
-
-    /*
-      PASO 4:
-      Enviar correo con imagen adjunta.
-    */
-
-    status.textContent =
-      'Enviando tu ofrenda por correo…';
-
-    submitBtn.textContent =
-      'Enviando correo…';
-
+    // 4. Enviar el correo con la composición.
+    status.textContent = 'Enviando tu ofrenda por correo…';
+    submitBtn.textContent = 'Enviando correo…';
 
     const response = await emailjs.send(
-
       EMAILJS_SERVICE_ID,
-
       EMAILJS_TEMPLATE_ID,
-
       templateParams,
-
       {
         publicKey: EMAILJS_PUBLIC_KEY
       }
-
     );
 
-
-    console.log('EmailJS:',response);
-
-
-    /*
-      PASO 5:
-      Confirmar éxito.
-    */
+    console.log('EmailJS:', response);
+    emailSent = true;
 
     status.textContent =
-      '¡Tu ofrenda fue enviada correctamente a tu correo!';
+      '¡Tu ofrenda fue enviada a tu correo! La solicitud de registro también fue enviada.';
 
-    submitBtn.textContent =
-      'Ofrenda enviada ✓';
+    submitBtn.textContent = 'Ofrenda enviada ✓';
 
-
-    /*
-      Liberar fotografías originales de memoria.
-      La captura enviada ya fue generada.
-    */
-
+    // 5. Liberar los recursos de las fotografías.
     resetPhotos();
-
     form.reset();
 
+  } catch (error) {
+    console.error('Error durante el envío:', error);
+
+    if (emailSent) {
+      status.textContent =
+        'El correo se envió, pero hubo un problema al completar el proceso.';
+    } else if (registrationAttempted) {
+      status.textContent =
+        'No se pudo completar el envío del correo. La solicitud de registro pudo haber sido enviada; revisa la hoja antes de reintentar.';
+    } else {
+      status.textContent =
+        'No fue posible procesar tu ofrenda. Intenta nuevamente.';
+    }
+
+    submitBtn.textContent = 'Crear y enviar mi ofrenda';
+
+  } finally {
     submitBtn.disabled = false;
-
-
-  } catch(error) {
-
-    console.error('Error enviando ofrenda:',error);
-
-    status.textContent =
-      'No fue posible enviar tu ofrenda. Intenta nuevamente.';
-
-    submitBtn.textContent =
-      'Crear y enviar mi ofrenda';
-
-    submitBtn.disabled = false;
-
   }
-
 });
-
 </script>
 
 </body>

@@ -1,0 +1,892 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#160d18">
+  <title>Ofrenda de Recuerdos</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <style>
+    body {
+      background: #160d18;
+      color: #fff7e8;
+    }
+
+    .field {
+      background: #241725;
+      border: 1px solid #65445d;
+    }
+
+    .field:focus {
+      outline: 2px solid #f59e0b;
+    }
+
+    .glow {
+      box-shadow: 0 0 45px #f59e0b22;
+    }
+
+    #altar {
+      width: 100%;
+      height: 520px;
+      display: block;
+      touch-action: pan-y;
+    }
+
+    @media(max-width:640px) {
+      #altar {
+        height: 390px;
+      }
+    }
+  </style>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"
+    }
+  }
+  </script>
+</head>
+
+<body class="min-h-screen">
+
+<header class="mx-auto max-w-6xl px-5 pt-8 relative z-10">
+  <nav class="flex justify-between items-center">
+    <span class="text-sm tracking-[.25em] uppercase text-amber-200">
+      Memoria Viva
+    </span>
+
+    <span class="text-xs text-rose-200/70">
+      Día de Muertos
+    </span>
+  </nav>
+</header>
+
+<main class="mx-auto max-w-6xl px-5 relative z-10">
+
+  <!-- HERO -->
+
+  <section class="grid items-center gap-10 py-14 md:grid-cols-2 md:py-20">
+
+    <div>
+      <p class="mb-4 text-xs uppercase tracking-[.35em] text-amber-300">
+        Una luz que nunca se apaga
+      </p>
+
+      <h1 class="font-serif text-5xl leading-tight sm:text-6xl">
+        Los recuerdos
+        <br>
+        <span class="italic text-amber-300">
+          siempre vuelven
+        </span>
+      </h1>
+
+      <p class="mt-6 max-w-lg leading-7 text-rose-100/75">
+        Crea una ofrenda digital para honrar a quienes
+        siguen viviendo en nuestros recuerdos.
+
+        Comparte sus fotografías y mantén viva su memoria.
+      </p>
+
+      <a href="#crear"
+         class="mt-8 inline-block rounded-full bg-amber-400 px-6 py-3 font-semibold text-stone-950 hover:bg-amber-300">
+        Crear mi ofrenda ↗
+      </a>
+    </div>
+
+    <!-- THREE JS -->
+
+    <div class="glow overflow-hidden rounded-3xl border border-amber-100/10 bg-[#211522]">
+
+      <div class="flex justify-between px-5 pt-5">
+        <span class="text-xs uppercase tracking-widest text-amber-200">
+          Ofrenda interactiva
+        </span>
+
+        <span class="text-xs text-rose-100/50">
+          Vista 3D
+        </span>
+      </div>
+
+      <canvas id="altar"></canvas>
+
+      <p class="px-5 pb-5 text-center text-xs text-rose-100/50">
+        Arrastra para explorar la ofrenda.
+      </p>
+
+    </div>
+
+  </section>
+
+
+  <!-- FORMULARIO -->
+
+  <section id="crear" class="mx-auto max-w-3xl py-10">
+
+    <div class="mb-8 text-center">
+
+      <p class="text-xs uppercase tracking-widest text-amber-300">
+        Tu homenaje
+      </p>
+
+      <h2 class="mt-3 font-serif text-4xl">
+        Enciende una memoria
+      </h2>
+
+      <p class="mt-3 text-sm text-rose-100/65">
+        Comparte tus recuerdos y forma parte de esta ofrenda.
+      </p>
+
+    </div>
+
+
+    <form id="memoryForm"
+          class="glow rounded-3xl border border-amber-100/10 bg-[#211522] p-6 sm:p-8">
+
+      <!-- NOMBRE -->
+
+      <div class="grid gap-5 sm:grid-cols-2">
+
+        <label>
+          <span class="mb-2 block text-sm text-amber-100">
+            Tu nombre *
+          </span>
+
+          <input
+            id="name"
+            name="name"
+            required
+            maxlength="100"
+            autocomplete="name"
+            placeholder="¿Cómo te llamas?"
+            class="field w-full rounded-xl px-4 py-3">
+        </label>
+
+
+        <!-- EMAIL -->
+
+        <label>
+          <span class="mb-2 block text-sm text-amber-100">
+            Correo electrónico *
+          </span>
+
+          <input
+            id="email"
+            name="email"
+            type="email"
+            required
+            maxlength="200"
+            autocomplete="email"
+            placeholder="tu@correo.com"
+            class="field w-full rounded-xl px-4 py-3">
+        </label>
+
+      </div>
+
+
+      <!-- FOTOGRAFIAS -->
+
+      <div class="mt-7">
+
+        <div class="flex justify-between items-end">
+
+          <div>
+            <label class="block text-sm text-amber-100">
+              Fotografías
+            </label>
+
+            <p class="mt-1 text-xs text-rose-100/55">
+              Máximo 5 imágenes
+            </p>
+          </div>
+
+          <span id="photoCount" class="text-xs text-amber-300">
+            0 / 5
+          </span>
+
+        </div>
+
+
+        <label for="photos"
+               class="mt-3 flex cursor-pointer flex-col items-center rounded-2xl border border-dashed border-amber-200/30 bg-[#2a1b2b] px-5 py-8 text-center hover:border-amber-300">
+
+          <span class="mb-2 text-3xl text-amber-300">＋</span>
+
+          <span class="font-medium">
+            Seleccionar fotografías
+          </span>
+
+          <span class="mt-1 text-xs text-rose-100/50">
+            JPG, PNG o WebP
+          </span>
+
+          <input
+            id="photos"
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            multiple
+            class="hidden">
+
+        </label>
+
+
+        <!-- PREVIEW -->
+
+        <div id="preview"
+             class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-5">
+        </div>
+
+      </div>
+
+
+      <!-- CONSENTIMIENTO -->
+
+      <label class="mt-6 flex items-start gap-3 text-xs leading-5 text-rose-100/65">
+
+        <input
+          id="consent"
+          type="checkbox"
+          required
+          class="mt-1 accent-amber-400">
+
+        <span>
+          Acepto que mi nombre, correo electrónico y fecha
+          se registren en la hoja de cálculo para esta actividad.
+
+          Mis fotografías no serán almacenadas ni enviadas
+          a ningún servidor.
+        </span>
+
+      </label>
+
+
+      <button
+        id="submitBtn"
+        type="submit"
+        class="mt-7 w-full rounded-full bg-amber-400 px-6 py-4 font-semibold text-stone-950 hover:bg-amber-300">
+
+        Registrar mi recuerdo
+
+      </button>
+
+      <p id="status"
+         role="status"
+         aria-live="polite"
+         class="mt-4 text-center text-sm text-amber-200">
+      </p>
+
+    </form>
+
+  </section>
+
+
+  <footer class="mt-16 border-t border-amber-100/10 py-8 text-center text-xs text-rose-100/40">
+    Hecho para recordar · Memoria, amor y tradición.
+  </footer>
+
+</main>
+
+
+<!-- THREE JS -->
+
+<script type="module">
+
+import * as THREE from 'three';
+
+const canvas = document.querySelector('#altar');
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color('#211522');
+
+const camera = new THREE.PerspectiveCamera(
+  38,
+  1,
+  0.1,
+  100
+);
+
+camera.position.set(0, 1.5, 9.5);
+
+const renderer = new THREE.WebGLRenderer({
+  canvas,
+  antialias: true
+});
+
+renderer.setPixelRatio(
+  Math.min(window.devicePixelRatio, 2)
+);
+
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+
+// ILUMINACIÓN
+
+scene.add(
+  new THREE.AmbientLight(0xffd6a0, 1.6)
+);
+
+const light = new THREE.PointLight(
+  0xffa83d,
+  45,
+  30
+);
+
+light.position.set(0, 4, 5);
+scene.add(light);
+
+
+// GRUPO DE OFRENDA
+
+const altar = new THREE.Group();
+scene.add(altar);
+
+
+function material(color) {
+  return new THREE.MeshStandardMaterial({
+    color,
+    roughness: 0.8
+  });
+}
+
+
+function box(w,h,d,x,y,z,color) {
+
+  const mesh = new THREE.Mesh(
+    new THREE.BoxGeometry(w,h,d),
+    material(color)
+  );
+
+  mesh.position.set(x,y,z);
+  altar.add(mesh);
+
+  return mesh;
+}
+
+
+// NIVELES
+
+box(7.2,.28,2.2,0,-1.45,0,'#70452f');
+
+box(6.1,.24,1.8,0,-.72,-.12,'#a66a3e');
+
+box(4.7,.22,1.5,0,-.05,-.2,'#d29a53');
+
+
+// VELADORAS
+
+for (const x of [-2.75,2.75]) {
+
+  box(.28,.8,.28,x,-.88,.62,'#f4dfb0');
+
+  const flame = new THREE.Mesh(
+    new THREE.ConeGeometry(.09,.28,12),
+    new THREE.MeshBasicMaterial({
+      color: '#ffb52e'
+    })
+  );
+
+  flame.position.set(x,-.28,.62);
+
+  altar.add(flame);
+
+  const candleLight = new THREE.PointLight(
+    0xff9e36,
+    2.5,
+    3
+  );
+
+  candleLight.position.set(x,-.2,.8);
+
+  altar.add(candleLight);
+}
+
+
+// FLORES DE CEMPASÚCHIL
+
+for (let i=0; i<18; i++) {
+
+  const a = i / 18 * Math.PI * 2;
+
+  const x = Math.cos(a)*3.1;
+  const z = Math.sin(a)*.72;
+
+  const flower = new THREE.Mesh(
+    new THREE.SphereGeometry(.16,12,10),
+    material('#ed8b16')
+  );
+
+  flower.scale.set(1,.55,1);
+
+  flower.position.set(x,-1.25,z);
+
+  altar.add(flower);
+
+}
+
+
+// TARJETAS DE FOTOGRAFÍAS
+
+const cardGroup = new THREE.Group();
+
+altar.add(cardGroup);
+
+let cards = [];
+
+
+function createTexture(image) {
+
+  const c = document.createElement('canvas');
+
+  c.width = 512;
+  c.height = 640;
+
+  const ctx = c.getContext('2d');
+
+  ctx.fillStyle = '#f5e8cf';
+
+  ctx.fillRect(0,0,512,640);
+
+  ctx.fillStyle = '#fff8e9';
+
+  ctx.fillRect(30,30,452,520);
+
+
+  if (image) {
+
+    const scale = Math.max(
+      428/image.width,
+      470/image.height
+    );
+
+    const w = image.width*scale;
+    const h = image.height*scale;
+
+    ctx.save();
+
+    ctx.beginPath();
+    ctx.rect(42,42,428,470);
+    ctx.clip();
+
+    ctx.drawImage(
+      image,
+      (512-w)/2,
+      (512-h)/2+42,
+      w,
+      h
+    );
+
+    ctx.restore();
+
+  } else {
+
+    ctx.fillStyle = '#392439';
+
+    ctx.fillRect(42,42,428,470);
+
+    ctx.fillStyle = '#f4b44d';
+
+    ctx.font = '80px Georgia';
+
+    ctx.textAlign = 'center';
+
+    ctx.fillText('✦',256,280);
+
+  }
+
+
+  ctx.fillStyle = '#4b2a2b';
+
+  ctx.font = 'italic 25px Georgia';
+
+  ctx.textAlign = 'center';
+
+  ctx.fillText('Con amor y memoria',256,578);
+
+
+  const texture = new THREE.CanvasTexture(c);
+
+  texture.colorSpace = THREE.SRGBColorSpace;
+
+  return texture;
+
+}
+
+
+function updateCards(images=[]) {
+
+  cards.forEach(card => {
+
+    cardGroup.remove(card);
+
+    card.geometry.dispose();
+
+    card.material.map?.dispose();
+
+    card.material.dispose();
+
+  });
+
+  cards = [];
+
+  const list = images.length
+    ? images
+    : [null,null,null];
+
+  list.forEach((image,i) => {
+
+    const mesh = new THREE.Mesh(
+
+      new THREE.PlaneGeometry(1.22,1.52),
+
+      new THREE.MeshStandardMaterial({
+
+        map: createTexture(image),
+
+        side: THREE.DoubleSide
+
+      })
+
+    );
+
+    const spread = i-(list.length-1)/2;
+
+    mesh.position.set(
+      spread*1.38,
+      .85,
+      Math.abs(spread)*-.08
+    );
+
+    mesh.rotation.y = spread*-.08;
+
+    cardGroup.add(mesh);
+
+    cards.push(mesh);
+
+  });
+
+}
+
+
+updateCards();
+
+
+// PAPEL PICADO
+
+for (let i=0; i<11; i++) {
+
+  const paper = new THREE.Mesh(
+
+    new THREE.PlaneGeometry(.34,.42),
+
+    new THREE.MeshBasicMaterial({
+
+      color: i%2 ? '#c34b61' : '#e9a63b',
+
+      side: THREE.DoubleSide
+
+    })
+
+  );
+
+  paper.position.set(-3.3+i*.66,2.25,0);
+
+  altar.add(paper);
+
+}
+
+
+// INTERACCIÓN 3D
+
+let dragging = false;
+
+let lastX = 0;
+
+let targetRotation = 0;
+
+canvas.addEventListener('pointerdown',e => {
+
+  dragging = true;
+
+  lastX = e.clientX;
+
+  canvas.setPointerCapture(e.pointerId);
+
+});
+
+canvas.addEventListener('pointermove',e => {
+
+  if (!dragging) return;
+
+  targetRotation += (e.clientX-lastX)*.008;
+
+  lastX = e.clientX;
+
+});
+
+canvas.addEventListener('pointerup',()=>dragging=false);
+
+canvas.addEventListener('pointercancel',()=>dragging=false);
+
+
+function resize() {
+
+  const w = canvas.clientWidth;
+
+  const h = canvas.clientHeight;
+
+  renderer.setSize(w,h,false);
+
+  camera.aspect = w/h;
+
+  camera.updateProjectionMatrix();
+
+}
+
+new ResizeObserver(resize).observe(canvas);
+
+resize();
+
+
+function animate() {
+
+  requestAnimationFrame(animate);
+
+  altar.rotation.y +=
+    (targetRotation-altar.rotation.y)*.06;
+
+  if (!dragging) targetRotation += .0015;
+
+  cards.forEach((card,i) => {
+
+    card.position.y =
+      .85 + Math.sin(Date.now()*.001+i)*.025;
+
+  });
+
+  renderer.render(scene,camera);
+
+}
+
+animate();
+
+
+// FORMULARIO Y FOTOGRAFÍAS
+
+const fileInput = document.querySelector('#photos');
+
+const preview = document.querySelector('#preview');
+
+const photoCount = document.querySelector('#photoCount');
+
+const status = document.querySelector('#status');
+
+let selectedFiles = [];
+
+let objectUrls = [];
+
+
+function clearPreview() {
+
+  objectUrls.forEach(URL.revokeObjectURL);
+
+  objectUrls = [];
+
+  preview.replaceChildren();
+
+}
+
+
+fileInput.addEventListener('change', async () => {
+
+  const files = Array.from(fileInput.files || []);
+
+  if (files.length > 5) {
+
+    status.textContent =
+      'Puedes seleccionar máximo 5 fotografías.';
+
+    fileInput.value = '';
+
+    return;
+
+  }
+
+  const valid = files.filter(file =>
+    ['image/jpeg','image/png','image/webp'].includes(file.type)
+  );
+
+  if (valid.length !== files.length) {
+
+    status.textContent =
+      'Solo se permiten JPG, PNG y WebP.';
+
+  }
+
+  if (valid.some(file => file.size > 12*1024*1024)) {
+
+    status.textContent =
+      'Cada fotografía debe pesar menos de 12 MB.';
+
+    return;
+
+  }
+
+  selectedFiles = valid;
+
+  clearPreview();
+
+  const images = await Promise.all(valid.map(file => {
+
+    return new Promise(resolve => {
+
+      const url = URL.createObjectURL(file);
+
+      objectUrls.push(url);
+
+      const img = new Image();
+
+      img.onload = () => resolve(img);
+
+      img.onerror = () => resolve(null);
+
+      img.src = url;
+
+      const card = document.createElement('div');
+
+      card.className =
+        'overflow-hidden rounded-xl border border-amber-100/10 bg-[#2a1b2b]';
+
+      const previewImg = document.createElement('img');
+
+      previewImg.src = url;
+
+      previewImg.alt = 'Fotografía seleccionada';
+
+      previewImg.className = 'h-28 w-full object-cover';
+
+      card.appendChild(previewImg);
+
+      preview.appendChild(card);
+
+    });
+
+  }));
+
+  photoCount.textContent = `${valid.length} / 5`;
+
+  updateCards(images.filter(Boolean));
+
+  status.textContent = '';
+
+});
+
+
+// ENVÍO A GOOGLE SHEETS MEDIANTE GOOGLE FORMS
+
+const GOOGLE_FORM_ACTION =
+  'PEGA_AQUI_LA_URL_DE_ENVIO_DE_GOOGLE_FORMS';
+
+const ENTRY_NAME = 'entry.000000000';
+
+const ENTRY_EMAIL = 'entry.000000001';
+
+const ENTRY_PHOTO_COUNT = 'entry.000000002';
+
+
+document.querySelector('#memoryForm').addEventListener(
+  'submit',
+  async e => {
+
+    e.preventDefault();
+
+    const name =
+      document.querySelector('#name').value.trim();
+
+    const email =
+      document.querySelector('#email').value.trim();
+
+    if (!name || !email) return;
+
+    if (!document.querySelector('#consent').checked) return;
+
+    const btn = document.querySelector('#submitBtn');
+
+    btn.disabled = true;
+
+    status.textContent = 'Registrando tu recuerdo…';
+
+    try {
+
+      if (GOOGLE_FORM_ACTION.includes('PEGA_AQUI')) {
+
+        console.log('Registro de prueba:', {
+          name,
+          email,
+          photoCount: selectedFiles.length,
+          createdAt: new Date().toISOString()
+        });
+
+        status.textContent =
+          'Modo de prueba: configura Google Forms para registrar los datos.';
+
+        return;
+
+      }
+
+      const data = new URLSearchParams();
+
+      data.append(ENTRY_NAME,name);
+
+      data.append(ENTRY_EMAIL,email);
+
+      data.append(
+        ENTRY_PHOTO_COUNT,
+        String(selectedFiles.length)
+      );
+
+      await fetch(GOOGLE_FORM_ACTION, {
+
+        method: 'POST',
+
+        mode: 'no-cors',
+
+        body: data
+
+      });
+
+      status.textContent =
+        '¡Gracias! Tu recuerdo forma parte de nuestra memoria.';
+
+      document.querySelector('#memoryForm').reset();
+
+      selectedFiles = [];
+
+      clearPreview();
+
+      photoCount.textContent = '0 / 5';
+
+      updateCards();
+
+    } catch(error) {
+
+      console.error(error);
+
+      status.textContent =
+        'No se pudo enviar el registro. Intenta nuevamente.';
+
+    } finally {
+
+      btn.disabled = false;
+
+    }
+
+  }
+);
+
+</script>
+
+</body>
+</html>

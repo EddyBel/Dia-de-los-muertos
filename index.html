@@ -8,51 +8,25 @@
   <title>Ofrenda de Recuerdos</title>
 
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
-
   <script type="importmap">
   {
     "imports": {
-      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
     }
   }
   </script>
 
-  <style>
-    body {
-      background: #160d18;
-      color: #fff7e8;
-    }
-
-    .field {
-      background: #241725;
-      border: 1px solid #65445d;
-    }
-
-    .field:focus {
-      outline: 2px solid #f59e0b;
-    }
-
-    .glow {
-      box-shadow: 0 0 45px #f59e0b22;
-    }
-
-    #altar {
-      width: 100%;
-      height: 520px;
-      display: block;
-      touch-action: pan-y;
-    }
-
-    @media(max-width:640px) {
-      #altar {
-        height: 390px;
-      }
-    }
-  </style>
+  <link rel="stylesheet" href="./src/styles/main.css">
 </head>
 
 <body class="min-h-screen">
+
+<div id="ambientBackground" aria-hidden="true">
+  <div class="ambient-background__image"></div>
+  <div class="ambient-background__image"></div>
+  <div class="ambient-background__shade"></div>
+</div>
 
 <header class="mx-auto max-w-6xl px-5 pt-8 relative z-10">
   <nav class="flex justify-between items-center">
@@ -92,19 +66,79 @@
       </a>
     </div>
 
-    <div class="glow overflow-hidden rounded-3xl border border-amber-100/10 bg-[#211522]">
-      <div class="flex justify-between px-5 pt-5">
+    <div id="altarExperience" class="glow overflow-hidden rounded-3xl border border-amber-100/10 bg-[#211522]">
+      <div class="flex flex-wrap items-center justify-between gap-3 px-5 pt-5">
         <span class="text-xs uppercase tracking-widest text-amber-200">
           Ofrenda interactiva
         </span>
-        <span class="text-xs text-rose-100/50">Vista 3D</span>
+        <div id="modelVariantControls" class="altar-model-switch" role="group" aria-label="Elegir modelo del altar" hidden>
+          <button id="texturedModelButton" type="button" aria-pressed="true">Texturizado</button>
+          <button id="detailedModelButton" type="button" aria-pressed="false">STL detallado</button>
+        </div>
       </div>
 
-      <canvas id="altar"></canvas>
-
-      <p class="px-5 pb-5 text-center text-xs text-rose-100/50">
-        Arrastra para explorar la ofrenda.
+      <p id="altarModelStatus" role="status" aria-live="polite"
+         class="px-5 pt-3 text-center text-xs text-amber-200/75">
+        Cargando modelo 3D…
       </p>
+      <div id="altarViewport" class="model-viewport">
+        <div class="model-backdrop" aria-hidden="true"></div>
+        <canvas id="altar"></canvas>
+        <button id="altarFullscreen" class="altar-fullscreen-button" type="button" aria-label="Ver la ofrenda en pantalla completa" title="Pantalla completa">
+          <span aria-hidden="true">⛶</span>
+          <span class="altar-fullscreen-button__label">Pantalla completa</span>
+        </button>
+      </div>
+
+      <section id="photoCalibrationControls" class="photo-calibration" aria-label="Ajuste de fotos en los marcos" hidden>
+        <div class="photo-calibration__heading">
+          <div>
+            <h3>Ajuste de fotos · modo desarrollador</h3>
+            <p>Elige un marco y edita su posición y tamaño en coordenadas del modelo.</p>
+          </div>
+          <button id="resetPhotoCalibration" class="photo-calibration__secondary" type="button">Restablecer marco</button>
+        </div>
+        <div class="photo-calibration__fields">
+          <label>Marco
+            <select id="calibrationFrame">
+              <option value="left">Izquierdo</option>
+              <option value="center">Centro</option>
+              <option value="right">Derecho</option>
+            </select>
+          </label>
+          <label>X
+            <input data-calibration="x" type="number" step="0.002">
+          </label>
+          <label>Y · altura
+            <input data-calibration="y" type="number" step="0.002">
+          </label>
+          <label>Z · profundidad
+            <input data-calibration="z" type="number" step="0.002">
+          </label>
+          <label>Ancho
+            <input data-calibration="width" type="number" min="0.005" step="0.002">
+          </label>
+          <label>Alto
+            <input data-calibration="height" type="number" min="0.005" step="0.002">
+          </label>
+        </div>
+        <label class="photo-calibration__output-label" for="photoCalibrationOutput">Coordenadas y tamaños actuales</label>
+        <textarea id="photoCalibrationOutput" readonly spellcheck="false"></textarea>
+        <div class="photo-calibration__actions">
+          <button id="copyPhotoCalibration" type="button">Copiar coordenadas</button>
+          <span id="photoCalibrationStatus" role="status" aria-live="polite"></span>
+        </div>
+      </section>
+
+      <div class="flex flex-col items-center gap-3 px-5 pb-5 text-center">
+        <p class="text-xs text-rose-100/50">Arrastra para explorar la ofrenda.</p>
+        <button id="downloadPhotoSession" type="button" hidden
+                class="rounded-full border border-amber-200/30 px-5 py-2 text-sm font-medium text-amber-100 hover:bg-amber-200/10">
+          Descargar sesión de fotos
+        </button>
+        <p id="photoSessionStatus" role="status" aria-live="polite" hidden
+           class="max-w-xl text-xs text-amber-200"></p>
+      </div>
     </div>
   </section>
 
@@ -155,7 +189,7 @@
         <div class="flex justify-between items-end">
           <div>
             <label class="block text-sm text-amber-100">Fotografías</label>
-            <p class="mt-1 text-xs text-rose-100/55">Máximo 5 imágenes</p>
+            <p class="mt-1 text-xs text-rose-100/55">Hasta 5 imágenes; si eliges más de 3, alternan en los marcos.</p>
           </div>
           <span id="photoCount" class="text-xs text-amber-300">0 / 5</span>
         </div>
@@ -188,11 +222,11 @@
 
         <span>
           Acepto que mi nombre y correo electrónico se utilicen
-          para registrar mi participación y enviar la imagen
-          de mi ofrenda por correo electrónico.
+          para registrar mi participación.
 
-          Las fotografías originales no serán almacenadas.
-          Se enviará únicamente la composición final de la ofrenda.
+          Las fotos originales no se guardan en este sitio. Al enviar el formulario,
+          se crearán cinco capturas de la ofrenda y se enviarán a este correo mediante
+          Resend; también podrás descargarlas como un archivo ZIP.
         </span>
       </label>
 
@@ -200,7 +234,7 @@
         id="submitBtn"
         type="submit"
         class="mt-7 w-full rounded-full bg-amber-400 px-6 py-4 font-semibold text-stone-950 hover:bg-amber-300 disabled:opacity-50">
-        Crear y enviar mi ofrenda
+        Registrar mi participación
       </button>
 
       <p id="status"
@@ -213,712 +247,15 @@
 
   <footer class="mt-16 border-t border-amber-100/10 py-8 text-center text-xs text-rose-100/40">
     Hecho para recordar · Memoria, amor y tradición.
+    <p class="mt-2">
+      Modelo “Altar de Día de Muertos | Ofrenda Mexicana Decorativa” por TNTNetta,
+      adaptado para esta ofrenda bajo licencia
+      <a class="underline hover:text-amber-200" href="https://creativecommons.org/licenses/by-nc/4.0/" target="_blank" rel="noreferrer">CC BY-NC 4.0</a>.
+    </p>
   </footer>
 </main>
 
-<script type="module">
-import * as THREE from 'three';
-
-/* =====================================================
-   CONFIGURACIÓN
-===================================================== */
-
-// EMAILJS
-const EMAILJS_PUBLIC_KEY = 'TU_PUBLIC_KEY';
-const EMAILJS_SERVICE_ID = 'TU_SERVICE_ID';
-const EMAILJS_TEMPLATE_ID = 'TU_TEMPLATE_ID';
-
-// GOOGLE FORMS
-// Este debe ser el ID del FORMULARIO, no el de la hoja.
-const GOOGLE_FORM_ACTION =
-  'https://docs.google.com/forms/d/e/TU_FORM_ID/formResponse';
-
-// IDs reales de los campos del formulario.
-const ENTRY_NAME = 'entry.ID_NOMBRE';
-const ENTRY_EMAIL = 'entry.ID_CORREO';
-
-// Google Forms genera automáticamente la marca de tiempo
-// en la primera columna de la hoja vinculada.
-
-/* =====================================================
-   ELEMENTOS
-===================================================== */
-
-const canvas = document.querySelector('#altar');
-const form = document.querySelector('#memoryForm');
-const submitBtn = document.querySelector('#submitBtn');
-const status = document.querySelector('#status');
-const fileInput = document.querySelector('#photos');
-const preview = document.querySelector('#preview');
-const photoCount = document.querySelector('#photoCount');
-
-/* =====================================================
-   THREE.JS: ESCENA
-===================================================== */
-
-const scene = new THREE.Scene();
-scene.background = new THREE.Color('#211522');
-
-const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 100);
-camera.position.set(0, 1.5, 9.5);
-camera.lookAt(0, 0, 0);
-
-const renderer = new THREE.WebGLRenderer({
-  canvas,
-  antialias: true,
-  preserveDrawingBuffer: true
-});
-
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-renderer.outputColorSpace = THREE.SRGBColorSpace;
-
-scene.add(new THREE.AmbientLight(0xffd6a0, 1.6));
-
-const light = new THREE.PointLight(0xffa83d, 45, 30);
-light.position.set(0, 4, 5);
-scene.add(light);
-
-const altar = new THREE.Group();
-scene.add(altar);
-
-function material(color) {
-  return new THREE.MeshStandardMaterial({
-    color,
-    roughness: 0.8
-  });
-}
-
-function box(w, h, d, x, y, z, color) {
-  const mesh = new THREE.Mesh(
-    new THREE.BoxGeometry(w, h, d),
-    material(color)
-  );
-
-  mesh.position.set(x, y, z);
-  mesh.castShadow = true;
-  mesh.receiveShadow = true;
-  altar.add(mesh);
-
-  return mesh;
-}
-
-/* =====================================================
-   NIVELES DEL ALTAR
-===================================================== */
-
-box(7.2, .28, 2.2, 0, -1.45, 0, '#70452f');
-box(6.1, .24, 1.8, 0, -.72, -.12, '#a66a3e');
-box(4.7, .22, 1.5, 0, -.05, -.2, '#d29a53');
-
-/* =====================================================
-   VELADORAS
-===================================================== */
-
-for (const x of [-2.75, 2.75]) {
-  box(.28, .8, .28, x, -.88, .62, '#f4dfb0');
-
-  const flame = new THREE.Mesh(
-    new THREE.ConeGeometry(.09, .28, 12),
-    new THREE.MeshBasicMaterial({ color: '#ffb52e' })
-  );
-
-  flame.position.set(x, -.28, .62);
-  altar.add(flame);
-
-  const candleLight = new THREE.PointLight(0xff9e36, 2.5, 3);
-  candleLight.position.set(x, -.2, .8);
-  altar.add(candleLight);
-}
-
-/* =====================================================
-   FLORES DE CEMPASÚCHIL
-===================================================== */
-
-for (let i = 0; i < 18; i++) {
-  const a = i / 18 * Math.PI * 2;
-  const x = Math.cos(a) * 3.1;
-  const z = Math.sin(a) * .72;
-
-  const flower = new THREE.Mesh(
-    new THREE.SphereGeometry(.16, 12, 10),
-    material('#ed8b16')
-  );
-
-  flower.scale.set(1, .55, 1);
-  flower.position.set(x, -1.25, z);
-  altar.add(flower);
-
-  const center = new THREE.Mesh(
-    new THREE.SphereGeometry(.07, 10, 8),
-    material('#6c321b')
-  );
-
-  center.position.set(x, -1.20, z);
-  altar.add(center);
-}
-
-/* =====================================================
-   PAPEL PICADO
-===================================================== */
-
-for (let i = 0; i < 11; i++) {
-  const paper = new THREE.Mesh(
-    new THREE.PlaneGeometry(.34, .42),
-    new THREE.MeshBasicMaterial({
-      color: i % 2 ? '#c34b61' : '#e9a63b',
-      side: THREE.DoubleSide
-    })
-  );
-
-  paper.position.set(-3.3 + i * .66, 2.25, 0);
-  altar.add(paper);
-}
-
-/* =====================================================
-   TARJETAS 3D DE FOTOGRAFÍAS
-===================================================== */
-
-const cardGroup = new THREE.Group();
-altar.add(cardGroup);
-
-let cards = [];
-let loadedImages = [];
-let selectedFiles = [];
-let objectUrls = [];
-let imageGeneration = 0;
-
-function createTexture(image) {
-  const c = document.createElement('canvas');
-  c.width = 512;
-  c.height = 640;
-
-  const ctx = c.getContext('2d');
-
-  ctx.fillStyle = '#d8b98c';
-  ctx.fillRect(0, 0, 512, 640);
-
-  ctx.fillStyle = '#fff8e9';
-  ctx.fillRect(30, 30, 452, 520);
-
-  if (image) {
-    const sourceWidth = image.width;
-    const sourceHeight = image.height;
-    const targetWidth = 428;
-    const targetHeight = 470;
-
-    const sourceRatio = sourceWidth / sourceHeight;
-    const targetRatio = targetWidth / targetHeight;
-
-    let sx = 0;
-    let sy = 0;
-    let sw = sourceWidth;
-    let sh = sourceHeight;
-
-    if (sourceRatio > targetRatio) {
-      sw = sourceHeight * targetRatio;
-      sx = (sourceWidth - sw) / 2;
-    } else {
-      sh = sourceWidth / targetRatio;
-      sy = (sourceHeight - sh) / 2;
-    }
-
-    ctx.save();
-    ctx.beginPath();
-    ctx.rect(42, 42, targetWidth, targetHeight);
-    ctx.clip();
-
-    ctx.drawImage(
-      image,
-      sx, sy, sw, sh,
-      42, 42, targetWidth, targetHeight
-    );
-
-    ctx.restore();
-  } else {
-    ctx.fillStyle = '#392439';
-    ctx.fillRect(42, 42, 428, 470);
-
-    ctx.fillStyle = '#f4b44d';
-    ctx.font = '80px Georgia';
-    ctx.textAlign = 'center';
-    ctx.fillText('✦', 256, 280);
-  }
-
-  ctx.fillStyle = '#4b2a2b';
-  ctx.font = 'italic 25px Georgia';
-  ctx.textAlign = 'center';
-  ctx.fillText('Con amor y memoria', 256, 578);
-
-  const texture = new THREE.CanvasTexture(c);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  texture.needsUpdate = true;
-
-  return texture;
-}
-
-function updateCards(images = []) {
-  cards.forEach(card => {
-    cardGroup.remove(card);
-    card.geometry.dispose();
-
-    if (card.material.map) {
-      card.material.map.dispose();
-    }
-
-    card.material.dispose();
-  });
-
-  cards = [];
-
-  const list = images.length ? images : [null, null, null];
-
-  list.forEach((image, i) => {
-    const texture = createTexture(image);
-
-    const geometry = new THREE.PlaneGeometry(1.22, 1.52);
-
-    const mat = new THREE.MeshStandardMaterial({
-      map: texture,
-      side: THREE.DoubleSide,
-      roughness: 0.85
-    });
-
-    const mesh = new THREE.Mesh(geometry, mat);
-    const spread = i - (list.length - 1) / 2;
-
-    mesh.position.set(
-      spread * 1.38,
-      .85,
-      Math.abs(spread) * -.08
-    );
-
-    mesh.rotation.y = spread * -.08;
-
-    cardGroup.add(mesh);
-    cards.push(mesh);
-  });
-
-  renderer.render(scene, camera);
-}
-
-/* =====================================================
-   DECODIFICACIÓN DE IMÁGENES
-===================================================== */
-
-async function decodeImage(file) {
-  if (!file.type.startsWith('image/')) {
-    throw new Error('Formato de imagen inválido');
-  }
-
-  if (typeof createImageBitmap === 'function') {
-    return await createImageBitmap(file);
-  }
-
-  const url = URL.createObjectURL(file);
-
-  try {
-    const image = new Image();
-    image.src = url;
-    await image.decode();
-    return image;
-  } finally {
-    URL.revokeObjectURL(url);
-  }
-}
-
-function clearPreview() {
-  objectUrls.forEach(url => URL.revokeObjectURL(url));
-  objectUrls = [];
-  preview.replaceChildren();
-}
-
-function clearImages() {
-  loadedImages.forEach(image => {
-    if (typeof image.close === 'function') {
-      image.close();
-    }
-  });
-
-  loadedImages = [];
-}
-
-function resetPhotos() {
-  imageGeneration++;
-  selectedFiles = [];
-  clearPreview();
-  clearImages();
-  fileInput.value = '';
-  photoCount.textContent = '0 / 5';
-  updateCards();
-}
-
-/* =====================================================
-   SELECTOR Y PREVISUALIZACIÓN
-===================================================== */
-
-fileInput.addEventListener('change', async () => {
-  const generation = ++imageGeneration;
-  const files = Array.from(fileInput.files || []);
-
-  if (files.length > 5) {
-    status.textContent = 'Puedes seleccionar máximo 5 fotografías.';
-    fileInput.value = '';
-    return;
-  }
-
-  const validTypes = [
-    'image/jpeg',
-    'image/png',
-    'image/webp'
-  ];
-
-  if (files.some(file => !validTypes.includes(file.type))) {
-    status.textContent = 'Solo se permiten fotografías JPG, PNG o WebP.';
-    fileInput.value = '';
-    return;
-  }
-
-  if (files.some(file => file.size > 12 * 1024 * 1024)) {
-    status.textContent = 'Cada fotografía debe pesar menos de 12 MB.';
-    fileInput.value = '';
-    return;
-  }
-
-  selectedFiles = files;
-  clearPreview();
-  clearImages();
-
-  status.textContent = 'Procesando fotografías…';
-
-  files.forEach(file => {
-    const url = URL.createObjectURL(file);
-    objectUrls.push(url);
-
-    const card = document.createElement('div');
-    card.className =
-      'overflow-hidden rounded-xl border border-amber-100/10 bg-[#2a1b2b]';
-
-    const img = document.createElement('img');
-    img.src = url;
-    img.alt = 'Fotografía seleccionada';
-    img.className = 'h-28 w-full object-cover';
-
-    const name = document.createElement('p');
-    name.className =
-      'truncate px-2 py-2 text-xs text-rose-100/70';
-    name.textContent = file.name;
-
-    card.append(img, name);
-    preview.append(card);
-  });
-
-  photoCount.textContent = `${files.length} / 5`;
-
-  try {
-    const images = await Promise.all(
-      files.map(file => decodeImage(file))
-    );
-
-    if (generation !== imageGeneration) {
-      images.forEach(image => image.close?.());
-      return;
-    }
-
-    loadedImages = images;
-    updateCards(loadedImages);
-
-    status.textContent = 'Fotografías cargadas correctamente.';
-  } catch (error) {
-    console.error('Error procesando imágenes:', error);
-
-    if (generation === imageGeneration) {
-      status.textContent = 'No fue posible procesar alguna fotografía.';
-      resetPhotos();
-    }
-  }
-});
-
-/* =====================================================
-   INTERACCIÓN 3D
-===================================================== */
-
-let dragging = false;
-let lastX = 0;
-let targetRotation = 0;
-
-canvas.addEventListener('pointerdown', event => {
-  dragging = true;
-  lastX = event.clientX;
-  canvas.setPointerCapture(event.pointerId);
-});
-
-canvas.addEventListener('pointermove', event => {
-  if (!dragging) return;
-
-  targetRotation += (event.clientX - lastX) * .008;
-  lastX = event.clientX;
-});
-
-canvas.addEventListener('pointerup', () => {
-  dragging = false;
-});
-
-canvas.addEventListener('pointercancel', () => {
-  dragging = false;
-});
-
-/* =====================================================
-   RESPONSIVE
-===================================================== */
-
-function resize() {
-  const width = canvas.clientWidth;
-  const height = canvas.clientHeight;
-
-  if (!width || !height) return;
-
-  renderer.setSize(width, height, false);
-
-  camera.aspect = width / height;
-  camera.updateProjectionMatrix();
-
-  renderer.render(scene, camera);
-}
-
-const resizeObserver = new ResizeObserver(resize);
-resizeObserver.observe(canvas);
-resize();
-
-/* =====================================================
-   ANIMACIÓN
-===================================================== */
-
-function animate() {
-  requestAnimationFrame(animate);
-
-  altar.rotation.y +=
-    (targetRotation - altar.rotation.y) * .06;
-
-  if (!dragging) {
-    targetRotation += .0015;
-  }
-
-  cards.forEach((card, i) => {
-    card.position.y =
-      .85 + Math.sin(Date.now() * .001 + i) * .025;
-  });
-
-  renderer.render(scene, camera);
-}
-
-animate();
-
-/* =====================================================
-   CAPTURA PNG
-===================================================== */
-
-function captureAltar() {
-  return new Promise((resolve, reject) => {
-    try {
-      renderer.render(scene, camera);
-
-      canvas.toBlob(blob => {
-        if (!blob) {
-          reject(new Error('No se pudo generar la captura PNG'));
-          return;
-        }
-
-        resolve(blob);
-      }, 'image/png');
-    } catch (error) {
-      reject(error);
-    }
-  });
-}
-
-function blobToBase64(blob) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = () => reject(reader.error);
-
-    reader.readAsDataURL(blob);
-  });
-}
-
-/* =====================================================
-   REGISTRO EN GOOGLE FORMS
-===================================================== */
-
-/*
-  El formulario vinculado a Google Sheets debe tener:
-  - Pregunta 1: Nombre
-  - Pregunta 2: Correo electrónico
-
-  Google Forms crea automáticamente la columna de fecha.
-  La hoja resultante tendrá:
-  A: Marca de tiempo
-  B: Nombre
-  C: Correo electrónico
-
-  Atención:
-  mode: no-cors impide leer la respuesta HTTP.
-  Por tanto, el navegador no puede verificar que Google
-  haya aceptado y guardado la respuesta.
-*/
-
-function isGoogleFormsConfigured() {
-  return (
-    !GOOGLE_FORM_ACTION.includes('TU_FORM_ID') &&
-    !ENTRY_NAME.includes('ID_') &&
-    !ENTRY_EMAIL.includes('ID_')
-  );
-}
-
-async function registerParticipant(name, email) {
-  if (!isGoogleFormsConfigured()) {
-    throw new Error('Google Forms no está configurado.');
-  }
-
-  const data = new URLSearchParams();
-
-  data.append(ENTRY_NAME, name);
-  data.append(ENTRY_EMAIL, email);
-
-  await fetch(GOOGLE_FORM_ACTION, {
-    method: 'POST',
-    mode: 'no-cors',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded'
-    },
-    body: data
-  });
-
-  // Una respuesta opaca no confirma el registro.
-  return true;
-}
-
-/* =====================================================
-   VALIDACIÓN DE CONFIGURACIÓN
-===================================================== */
-
-function isEmailJSConfigured() {
-  return (
-    !EMAILJS_PUBLIC_KEY.startsWith('TU_') &&
-    !EMAILJS_SERVICE_ID.startsWith('TU_') &&
-    !EMAILJS_TEMPLATE_ID.startsWith('TU_')
-  );
-}
-
-/* =====================================================
-   ENVÍO DEL FORMULARIO
-===================================================== */
-
-form.addEventListener('submit', async event => {
-  event.preventDefault();
-
-  const name = document.querySelector('#name').value.trim();
-  const email = document.querySelector('#email').value.trim();
-  const consent = document.querySelector('#consent').checked;
-
-  if (!name || !email || !consent) {
-    status.textContent =
-      'Completa los datos y acepta el consentimiento.';
-    return;
-  }
-
-  if (!isEmailJSConfigured()) {
-    status.textContent =
-      'Configura primero las credenciales de EmailJS.';
-    return;
-  }
-
-  if (!isGoogleFormsConfigured()) {
-    status.textContent =
-      'Configura primero el formulario de Google Forms.';
-    return;
-  }
-
-  if (typeof emailjs === 'undefined') {
-    status.textContent = 'No se pudo cargar EmailJS.';
-    return;
-  }
-
-  submitBtn.disabled = true;
-  submitBtn.textContent = 'Generando tu ofrenda…';
-
-  let emailSent = false;
-  let registrationAttempted = false;
-
-  try {
-    // 1. Capturar la composición de Three.js.
-    status.textContent = 'Preparando la imagen de tu recuerdo…';
-
-    const screenshotBlob = await captureAltar();
-    const screenshotBase64 = await blobToBase64(screenshotBlob);
-
-    // 2. Registrar los datos en Google Forms.
-    status.textContent = 'Enviando tus datos de participación…';
-    registrationAttempted = true;
-
-    await registerParticipant(name, email);
-
-    // 3. Preparar los parámetros de EmailJS.
-    const templateParams = {
-      name,
-      email,
-      to_email: email,
-      photo_count: selectedFiles.length,
-      ofrenda_png: screenshotBase64
-    };
-
-    // 4. Enviar el correo con la composición.
-    status.textContent = 'Enviando tu ofrenda por correo…';
-    submitBtn.textContent = 'Enviando correo…';
-
-    const response = await emailjs.send(
-      EMAILJS_SERVICE_ID,
-      EMAILJS_TEMPLATE_ID,
-      templateParams,
-      {
-        publicKey: EMAILJS_PUBLIC_KEY
-      }
-    );
-
-    console.log('EmailJS:', response);
-    emailSent = true;
-
-    status.textContent =
-      '¡Tu ofrenda fue enviada a tu correo! La solicitud de registro también fue enviada.';
-
-    submitBtn.textContent = 'Ofrenda enviada ✓';
-
-    // 5. Liberar los recursos de las fotografías.
-    resetPhotos();
-    form.reset();
-
-  } catch (error) {
-    console.error('Error durante el envío:', error);
-
-    if (emailSent) {
-      status.textContent =
-        'El correo se envió, pero hubo un problema al completar el proceso.';
-    } else if (registrationAttempted) {
-      status.textContent =
-        'No se pudo completar el envío del correo. La solicitud de registro pudo haber sido enviada; revisa la hoja antes de reintentar.';
-    } else {
-      status.textContent =
-        'No fue posible procesar tu ofrenda. Intenta nuevamente.';
-    }
-
-    submitBtn.textContent = 'Crear y enviar mi ofrenda';
-
-  } finally {
-    submitBtn.disabled = false;
-  }
-});
-</script>
+<script type="module" src="./src/main.js"></script>
 
 </body>
 </html>

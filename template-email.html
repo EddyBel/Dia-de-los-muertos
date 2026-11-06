@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="dark">
+    <title>Tu sesión de fotos de la ofrenda</title>
+    <style>
+      /* Clases utilitarias inspiradas en Tailwind; los estilos inline son el fallback para correo. */
+      .mx-auto { margin-left: auto !important; margin-right: auto !important; }
+      .w-full { width: 100% !important; }
+      .rounded-3xl { border-radius: 24px !important; }
+      .text-center { text-align: center !important; }
+      .font-sans { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif !important; }
+      .photo-cell { padding: 14px 12px !important; }
+      .photo-image { display: block !important; width: 100% !important; height: auto !important; border-radius: 12px !important; }
+      .email-heading { padding: 34px 28px 18px !important; }
+      .email-intro { padding: 8px 30px 22px !important; }
+      .email-gallery { padding: 0 22px 22px !important; }
+      @media only screen and (max-width: 600px) {
+        .email-shell { padding: 12px 8px !important; }
+        .email-heading { padding: 28px 18px 12px !important; }
+        .email-intro { padding: 8px 20px 20px !important; }
+        .email-gallery { padding: 0 20px 20px !important; }
+        .photo-cell { display: block !important; width: auto !important; padding: 12px 0 !important; }
+        .photo-image { width: 100% !important; max-width: 100% !important; border-radius: 10px !important; }
+        .photo-label { margin-bottom: 8px !important; }
+        .email-title { font-size: 28px !important; }
+      }
+    </style>
+  </head>
+  <body class="font-sans" style="margin:0; padding:0; background-color:#160d18; color:#fff7e8; font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;">
+    <!-- Plantilla de referencia visual; el correo de producción lo compone Code.gs para Resend. -->
+    <div style="display:none; max-height:0; overflow:hidden; opacity:0; color:transparent;">
+      Tus recuerdos ya forman parte de la ofrenda. Adjuntamos cinco vistas para que las conserves.
+    </div>
+
+    <table role="presentation" class="email-shell w-full" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%; border-collapse:collapse; background-color:#160d18;">
+      <tr>
+        <td align="center" style="padding:32px 16px;">
+          <table role="presentation" class="email-card mx-auto w-full rounded-3xl" width="680" cellspacing="0" cellpadding="0" border="0" style="width:100%; max-width:680px; margin:0 auto; border:1px solid #56394e; border-radius:24px; background-color:#211522;">
+            <tr>
+              <td class="email-heading text-center" align="center" style="padding:34px 28px 18px; text-align:center;">
+                <div style="font-size:12px; line-height:18px; letter-spacing:3px; text-transform:uppercase; color:#fcd477;">Memoria Viva · Día de Muertos</div>
+                <h1 class="email-title" style="margin:14px 0 0; font-family:Georgia,'Times New Roman',serif; font-size:34px; line-height:1.2; font-weight:400; color:#fff7e8;">Tu ofrenda de recuerdos</h1>
+                <div style="width:54px; height:2px; margin:20px auto 0; background-color:#e9a93d;"></div>
+              </td>
+            </tr>
+
+            <tr>
+              <td class="email-intro" style="padding:8px 30px 22px; color:#f4e6d2; font-size:16px; line-height:1.7;">
+                <p style="margin:0 0 12px;">Hola <strong style="color:#fcd477;">{{name}}</strong>,</p>
+                <p style="margin:0;">Gracias por compartir tus recuerdos. Preparamos <strong>{{view_count}} vistas</strong> de tu ofrenda para que puedas conservarlas. Las imágenes también vienen adjuntas a este correo.</p>
+              </td>
+            </tr>
+
+            <tr>
+              <td class="email-gallery" style="padding:0 22px 22px;">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%; border-collapse:collapse;">
+                  <tr>
+                    <td class="photo-cell" width="50%" valign="top" style="width:50%; padding:14px 12px;">
+                      <div class="photo-label" style="margin:0 0 10px; color:#fcd477; font-size:12px; letter-spacing:1px; text-transform:uppercase;">Frontal</div>
+                      <img class="photo-image" src="cid:photo_frontal" width="290" alt="Vista frontal de la ofrenda" style="display:block; width:100%; max-width:290px; height:auto; border:0; border-radius:12px;">
+                    </td>
+                    <td class="photo-cell" width="50%" valign="top" style="width:50%; padding:14px 12px;">
+                      <div class="photo-label" style="margin:0 0 10px; color:#fcd477; font-size:12px; letter-spacing:1px; text-transform:uppercase;">Tres cuartos derecha</div>
+                      <img class="photo-image" src="cid:photo_tres_cuartos_derecha" width="290" alt="Vista de tres cuartos por la derecha" style="display:block; width:100%; max-width:290px; height:auto; border:0; border-radius:12px;">
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="photo-cell" width="50%" valign="top" style="width:50%; padding:14px 12px;">
+                      <div class="photo-label" style="margin:0 0 10px; color:#fcd477; font-size:12px; letter-spacing:1px; text-transform:uppercase;">Tres cuartos izquierda</div>
+                      <img class="photo-image" src="cid:photo_tres_cuartos_izquierda" width="290" alt="Vista de tres cuartos por la izquierda" style="display:block; width:100%; max-width:290px; height:auto; border:0; border-radius:12px;">
+                    </td>
+                    <td class="photo-cell" width="50%" valign="top" style="width:50%; padding:14px 12px;">
+                      <div class="photo-label" style="margin:0 0 10px; color:#fcd477; font-size:12px; letter-spacing:1px; text-transform:uppercase;">Picado</div>
+                      <img class="photo-image" src="cid:photo_picado" width="290" alt="Vista picada de la ofrenda" style="display:block; width:100%; max-width:290px; height:auto; border:0; border-radius:12px;">
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="photo-cell" colspan="2" align="center" valign="top" style="padding:14px 12px; text-align:center;">
+                      <div class="photo-label" style="margin:0 0 10px; color:#fcd477; font-size:12px; letter-spacing:1px; text-transform:uppercase;">Contrapicado</div>
+                      <img class="photo-image" src="cid:photo_contrapicado" width="290" alt="Vista contrapicada de la ofrenda" style="display:block; width:100%; max-width:290px; height:auto; margin:0 auto; border:0; border-radius:12px;">
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <tr>
+              <td style="padding:0 30px 28px; color:#d7c6d3; font-size:14px; line-height:1.7;">
+                <p style="margin:0;">También puedes descargar todas las imágenes juntas desde la página. Gracias por mantener viva su memoria.</p>
+              </td>
+            </tr>
+            <tr>
+              <td align="center" style="padding:18px 24px 24px; border-top:1px solid #56394e; color:#aa94a7; font-size:11px; line-height:1.6; text-align:center;">
+                Este mensaje fue enviado a {{email}} porque se utilizó este correo al crear la ofrenda.<br>
+                Memoria Viva · Hecho para recordar.
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

@@ -1,43 +1,29 @@
-# Apps Script y Resend
+# Envío de correo y registro con Apps Script
 
-GitHub Pages no tiene un servidor privado donde guardar la clave de Resend. El
-Apps Script desplegado funciona como intermediario: recibe las cinco capturas,
-las manda a Resend y escribe en `Hoja 1` el estado final (`ENVIADO` o
-`ERROR_ENVIO`) y su mensaje.
+La página de GitHub Pages envía las cinco capturas al Apps Script. El Apps
+Script usa `MailApp` para enviar el correo desde la cuenta Google propietaria
+del script y guarda el resultado en `Hoja 1`. No requiere dominio propio, API
+key de Resend ni EmailJS.
 
-## Configuración de Resend
+## Activar MailApp
 
-1. En Resend, verifica un dominio de envío y crea una API key con permiso de
-   envío. El remitente debe usar el dominio verificado, por ejemplo:
-   `Ofrenda de recuerdos <recuerdos@tudominio.mx>`.
-2. En el proyecto de Apps Script, abre **Configuración del proyecto →
-   Propiedades del script** y crea estas propiedades:
-   - `RESEND_API_KEY`: la API key de Resend (`re_...`).
-   - `RESEND_FROM`: el remitente completo, con el dominio verificado.
-3. Reemplaza el contenido del archivo `Code.gs` del proyecto de Apps Script con
-   este `Code.gs`.
-4. En el editor, selecciona `authorizeExternalRequests` y pulsa **Ejecutar**.
-   Acepta la autorización de solicitudes externas. No compartas ni pegues la API
-   key en el código ni en GitHub.
-5. Confirma que la pestaña se llame exactamente `Hoja 1` y que la implementación
-   esté configurada para ejecutarse como tú y permitir acceso a quienes usan la
+1. En el proyecto de Apps Script, reemplaza el contenido de `Code.gs` con este
+   archivo.
+2. En el editor, selecciona `authorizeMailApp` y pulsa **Ejecutar**. Acepta el
+   permiso para enviar correo desde la cuenta propietaria.
+3. Confirma que la pestaña se llame exactamente `Hoja 1`.
+4. Abre **Implementar → Administrar implementaciones**, edita la aplicación
+   web, selecciona **Nueva versión** y pulsa **Implementar**. Mantén la
+   configuración para ejecutar como tú y permitir acceso a quienes usan la
    página.
-6. Abre **Implementar → Administrar implementaciones**, edita la aplicación
-   web, selecciona **Nueva versión** y pulsa **Implementar**. La web ya apunta
-   a la URL `/exec` de esa implementación.
+5. Publica también la actualización de la página en GitHub Pages.
 
-## Envíos
+Los mensajes saldrán desde la cuenta Google que ejecuta la implementación. El
+nombre visible será “Memoria Viva”; la cuenta Gmail real seguirá siendo el
+remitente. `MailApp` permite hasta 100 destinatarios al día en cuentas personales
+y los adjuntos tienen un límite total de 25 MB por mensaje. Este script aplica
+un margen preventivo de 20 MB y limita a un envío por dirección cada 60
+segundos. Las cuotas pueden variar; el registro de la hoja guarda los errores.
 
-La página manda el nombre, el correo y las cinco imágenes JPEG como un POST
-JSON de texto plano. Apps Script guarda las imágenes solo durante la ejecución,
-las adjunta al correo mediante Resend y registra el resultado en la hoja. El
-límite local de este endpoint es 30 MB de contenido Base64; la API de Resend
-admite hasta 40 MB de adjuntos codificados por correo.
-
-El HTML del correo se genera en `Code.gs` y muestra las cinco vistas inline; las
-imágenes también quedan adjuntas. `template-email.html` se conserva como la
-referencia visual original.
-
-El endpoint es público porque lo llama la página estática. Incluye un límite
-básico de un envío por correo cada 60 segundos; revisa la hoja y el panel de
-Resend para monitorear resultados y uso.
+El correo muestra las cinco imágenes inline. El HTML se construye en `Code.gs`;
+`template-email.html` se conserva como referencia visual.

@@ -14,8 +14,8 @@ function blobToDataUrl(blob) {
   });
 }
 
-// Apps Script guarda el registro y envía las capturas usando la clave secreta
-// de Resend almacenada en sus propiedades, nunca desde GitHub Pages.
+// Apps Script guarda el registro y envía las capturas con MailApp desde la
+// cuenta Google propietaria, sin exponer credenciales en GitHub Pages.
 export async function submitOfrenda({ name, email, status, message = '', captures = [] }) {
   if (!isSubmissionServiceConfigured()) {
     throw new Error('El servicio de envío no está configurado.');

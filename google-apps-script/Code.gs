@@ -1,7 +1,6 @@
 const SPREADSHEET_ID = '1LwZET_i9KXWiDlr6JxhBDfXIXYUcd2hzwW_vQl1lpIQ';
 const SHEET_NAME = 'Hoja 1';
-const RESEND_API_URL = 'https://api.resend.com/emails';
-const MAX_EMAIL_BASE64_BYTES = 30 * 1024 * 1024;
+const MAX_EMAIL_ATTACHMENT_BYTES = 20 * 1024 * 1024;
 const EMAIL_VIEWS = [
   { id: 'frontal', label: 'Vista frontal' },
   { id: 'tres-cuartos-derecha', label: 'Tres cuartos derecha' },
@@ -10,9 +9,9 @@ const EMAIL_VIEWS = [
   { id: 'contrapicado', label: 'Vista contrapicada' }
 ];
 
-// Ejecuta esta función desde el editor una vez para autorizar UrlFetchApp.
-function authorizeExternalRequests() {
-  UrlFetchApp.fetch('https://api.resend.com', { muteHttpExceptions: true });
+// Ejecuta esta función desde el editor una vez para autorizar MailApp.
+function authorizeMailApp() {
+  MailApp.getRemainingDailyQuota();
 }
 
 function doPost(event) {
@@ -29,9 +28,9 @@ function doPost(event) {
   const captures = Array.isArray(payload.captures) ? payload.captures : [];
   if (captures.length) {
     try {
-      const resendResult = sendPhotoSessionWithResend(name, email, captures);
+      sendPhotoSessionWithMailApp(name, email, captures);
       status = 'ENVIADO';
-      message = 'Resend aceptó el mensaje. ID: ' + resendResult.id;
+      message = 'MailApp envió el correo desde la cuenta propietaria del Apps Script.';
     } catch (error) {
       status = 'ERROR_ENVIO';
       message = String(error && error.message ? error.message : error).slice(0, 2000);
@@ -59,20 +58,16 @@ function readRequestPayload(event) {
   return event && event.parameter ? event.parameter : {};
 }
 
-function sendPhotoSessionWithResend(name, email, captures) {
-  const properties = PropertiesService.getScriptProperties();
-  const apiKey = properties.getProperty('RESEND_API_KEY');
-  const sender = properties.getProperty('RESEND_FROM');
-  if (!apiKey || !sender) {
-    throw new Error('Falta configurar RESEND_API_KEY y RESEND_FROM en las propiedades del script.');
-  }
-
+function sendPhotoSessionWithMailApp(name, email, captures) {
   if (captures.length !== EMAIL_VIEWS.length) {
     throw new Error('Se requieren exactamente cinco capturas para el correo.');
   }
+  if (MailApp.getRemainingDailyQuota() < 1) {
+    throw new Error('La cuenta de Google agotó su cuota diaria de correo.');
+  }
 
   enforceRecipientRateLimit(email);
-  let base64Length = 0;
+  let attachmentBytes = 0;
   const captureById = {};
   captures.forEach(capture => {
     const id = String(capture.id || '');
@@ -82,12 +77,17 @@ function sendPhotoSessionWithResend(name, email, captures) {
     if (!expectedView || !match) {
       throw new Error('Una de las capturas tiene un formato o identificador inválido.');
     }
-    base64Length += match[1].length;
+    const blob = Utilities.newBlob(
+      Utilities.base64Decode(match[1]),
+      'image/jpeg',
+      'ofrenda-' + id + '.jpg'
+    );
+    attachmentBytes += blob.getBytes().length;
     captureById[id] = {
       id: id,
       label: expectedView.label,
       filename: 'ofrenda-' + id + '.jpg',
-      content: match[1],
+      blob: blob,
       contentId: 'photo_' + id.replace(/-/g, '_')
     };
   });
@@ -95,52 +95,27 @@ function sendPhotoSessionWithResend(name, email, captures) {
   if (Object.keys(captureById).length !== EMAIL_VIEWS.length) {
     throw new Error('Faltan vistas o hay identificadores repetidos en la sesión.');
   }
-  if (base64Length > MAX_EMAIL_BASE64_BYTES) {
-    throw new Error('Las cinco imágenes superan el máximo de 30 MB configurado para este envío.');
+  if (attachmentBytes > MAX_EMAIL_ATTACHMENT_BYTES) {
+    throw new Error('Las cinco imágenes superan el límite preventivo de 20 MB por correo.');
   }
 
-  const attachments = EMAIL_VIEWS.map(view => {
+  const inlineImages = {};
+  EMAIL_VIEWS.forEach(view => {
     const capture = captureById[view.id];
-    return {
-      filename: capture.filename,
-      content: capture.content,
-      content_type: 'image/jpeg',
-      content_id: capture.contentId
-    };
+    inlineImages[capture.contentId] = capture.blob;
   });
-
-  const response = UrlFetchApp.fetch(RESEND_API_URL, {
-    method: 'post',
-    contentType: 'application/json',
-    headers: { Authorization: 'Bearer ' + apiKey },
-    payload: JSON.stringify({
-      from: sender,
-      to: [email],
-      subject: 'Tu sesión de fotos de la ofrenda',
-      html: buildPhotoSessionEmailHtml(name, email, captureById),
-      attachments: attachments
-    }),
-    muteHttpExceptions: true
-  });
-
-  const responseCode = response.getResponseCode();
-  const responseBody = response.getContentText();
-  let responseData = {};
-  try {
-    responseData = JSON.parse(responseBody);
-  } catch (error) {
-    responseData = {};
-  }
-  if (responseCode < 200 || responseCode >= 300 || !responseData.id) {
-    const detail = responseData.message || responseData.error || responseBody || 'Respuesta inesperada de Resend.';
-    throw new Error('Resend ' + responseCode + ': ' + detail);
-  }
-  return responseData;
+  MailApp.sendEmail(email, 'Tu sesión de fotos de la ofrenda',
+    'Preparamos cinco vistas de tu ofrenda. Abre este mensaje en un cliente que admita HTML para verlas.', {
+      name: 'Memoria Viva',
+      htmlBody: buildPhotoSessionEmailHtml(name, email, captureById),
+      inlineImages: inlineImages
+    }
+  );
 }
 
 function enforceRecipientRateLimit(email) {
   const digest = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, email.toLowerCase());
-  const key = 'resend_' + Utilities.base64EncodeWebSafe(digest).slice(0, 32);
+  const key = 'mailapp_' + Utilities.base64EncodeWebSafe(digest).slice(0, 32);
   const cache = CacheService.getScriptCache();
   if (cache.get(key)) {
     throw new Error('Ya se envió una solicitud a este correo recientemente. Espera un minuto antes de reintentar.');

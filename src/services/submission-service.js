@@ -16,23 +16,26 @@ function blobToDataUrl(blob) {
 
 // Apps Script guarda el registro y envía las capturas con MailApp desde la
 // cuenta Google propietaria, sin exponer credenciales en GitHub Pages.
-export async function submitOfrenda({ name, email, status, message = '', captures = [] }) {
+export async function submitOfrenda({ name, email, dedication = '', status, message = '', captures = [] }) {
   if (!isSubmissionServiceConfigured()) {
     throw new Error('El servicio de envío no está configurado.');
   }
 
-  const encodedCaptures = await Promise.all(captures.map(async capture => ({
-    id: capture.id,
-    label: capture.label,
-    filename: capture.filename,
-    contentId: capture.parameterName,
-    dataUrl: await blobToDataUrl(capture.blob)
-  })));
+  const encodedCaptures = [];
+  for (const capture of captures) {
+    encodedCaptures.push({
+      id: capture.id,
+      label: capture.label,
+      filename: capture.filename,
+      contentId: capture.parameterName,
+      dataUrl: await blobToDataUrl(capture.blob)
+    });
+  }
 
   await fetch(googleSheetsConfig.endpoint, {
     method: 'POST',
     mode: 'no-cors',
     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify({ name, email, status, message, captures: encodedCaptures })
+    body: JSON.stringify({ name, email, dedication, status, message, captures: encodedCaptures })
   });
 }

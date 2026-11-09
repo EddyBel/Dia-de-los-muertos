@@ -15,11 +15,20 @@ const TEXTURED_MODEL_URL = new URL('../../public/models/altar-textured/altar.obj
 const TEXTURED_DIFFUSE_URL = new URL('../../public/models/altar-textured/diffuse.png', import.meta.url).href;
 const TEXTURED_NORMAL_URL = new URL('../../public/models/altar-textured/normal.png', import.meta.url).href;
 const TEXTURED_ROUGHNESS_URL = new URL('../../public/models/altar-textured/roughness.png', import.meta.url).href;
+const MOBILE_DIFFUSE_URL = new URL('../../public/models/altar-textured/mobile/diffuse.webp', import.meta.url).href;
+const MOBILE_NORMAL_URL = new URL('../../public/models/altar-textured/mobile/normal.webp', import.meta.url).href;
+const MOBILE_ROUGHNESS_URL = new URL('../../public/models/altar-textured/mobile/roughness.webp', import.meta.url).href;
 const MODEL_BACKDROP_URL = new URL(
   '../../public/backgrounds/escena-modelo.jpg',
   import.meta.url
 ).href;
-const PHOTO_SESSION_SIZE = 1600;
+const MOBILE_MODEL_BACKDROP_URL = new URL(
+  '../../public/backgrounds/escena-modelo-mobile.webp',
+  import.meta.url
+).href;
+const DESKTOP_PHOTO_SESSION_SIZE = 1600;
+const MOBILE_ALTAR_SCALE = .72;
+const MAX_SCENE_ROTATION = THREE.MathUtils.degToRad(38);
 
 const PHOTO_SESSION_VIEWS = [
   { id: 'frontal', label: 'Vista frontal', azimuth: 0, elevation: 16 },
@@ -29,26 +38,26 @@ const PHOTO_SESSION_VIEWS = [
   { id: 'contrapicado', label: 'Contrapicado', azimuth: 0, elevation: -10 }
 ];
 
-let modelBackdropPromise;
+const modelBackdropPromises = new Map();
 
-function loadModelBackdrop() {
-  if (!modelBackdropPromise) {
-    modelBackdropPromise = new Promise(resolve => {
+function loadModelBackdrop(url) {
+  if (!modelBackdropPromises.has(url)) {
+    modelBackdropPromises.set(url, new Promise(resolve => {
       const image = new Image();
       image.onload = () => resolve(image);
       image.onerror = () => resolve(null);
-      image.src = MODEL_BACKDROP_URL;
-    });
+      image.src = url;
+    }));
   }
-  return modelBackdropPromise;
+  return modelBackdropPromises.get(url);
 }
 
-function canvasToJpeg(canvas) {
+function canvasToJpeg(canvas, quality) {
   return new Promise((resolve, reject) => {
     canvas.toBlob(blob => {
       if (blob) resolve(blob);
       else reject(new Error('No se pudo generar una captura de la ofrenda.'));
-    }, 'image/jpeg', .94);
+    }, 'image/jpeg', quality);
   });
 }
 function createAltarMaterial() {
@@ -99,32 +108,45 @@ function createPhotoTexture(image, targetAspect) {
 }
 
 export function createAltar(canvas) {
+  const mobileProfile = window.matchMedia('(max-width: 768px), (pointer: coarse)').matches;
+  const lowMemoryProfile = mobileProfile && (
+    Number(navigator.deviceMemory || 8) <= 4 || Number(navigator.hardwareConcurrency || 8) <= 4
+  );
+  const photoSessionSize = mobileProfile ? (lowMemoryProfile ? 1024 : 1280) : DESKTOP_PHOTO_SESSION_SIZE;
+  const photoJpegQuality = mobileProfile ? (lowMemoryProfile ? .84 : .88) : .94;
+  const altarScale = mobileProfile ? MOBILE_ALTAR_SCALE : 1;
+  const cameraTargetHeight = 2.7 * altarScale;
   const scene = new THREE.Scene();
+  // La niebla negra es más lejana en escritorio para ocultar el borde del piso
+  // sin apagar la ofrenda; en móvil se acerca para conservar el efecto de escala.
+  scene.fog = new THREE.FogExp2(0x050307, mobileProfile ? .036 : .026);
   const stage = new THREE.Group();
   scene.add(stage);
 
   const camera = new THREE.PerspectiveCamera(38, 1, .1, 100);
-  camera.position.set(0, 6.3, 12.2);
-  camera.lookAt(0, 2.7, 0);
+  camera.position.set(0, 2.7 + (6.3 - 2.7) * altarScale, 12.2);
+  camera.lookAt(0, cameraTargetHeight, 0);
 
   const renderer = new THREE.WebGLRenderer({
     canvas,
-    antialias: true,
+    antialias: !mobileProfile,
     alpha: true,
-    preserveDrawingBuffer: true
+    preserveDrawingBuffer: !mobileProfile,
+    powerPreference: mobileProfile ? 'low-power' : 'default'
   });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  const viewportPixelRatio = mobileProfile ? 1 : Math.min(window.devicePixelRatio, 2);
+  renderer.setPixelRatio(viewportPixelRatio);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1;
-  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.enabled = !mobileProfile;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.setClearColor(0x000000, 0);
 
   stage.add(new THREE.HemisphereLight(0xffd59b, 0x100a14, .3));
   const keyLight = new THREE.DirectionalLight(0xffc27b, 1.8);
   keyLight.position.set(-4.5, 7.5, 3.5);
-  keyLight.castShadow = true;
+  keyLight.castShadow = !mobileProfile;
   keyLight.shadow.mapSize.set(1024, 1024);
   keyLight.shadow.camera.left = -5.5;
   keyLight.shadow.camera.right = 5.5;
@@ -142,10 +164,13 @@ export function createAltar(canvas) {
 
   // Pools of warm light at the candle rows create the localized, uneven
   // illumination of a candle-lit ofrenda without four expensive shadow maps.
-  const candleLights = [
+  const candleLightPositions = mobileProfile
+    ? [[-.25, 3.1, 2.4]]
+    : [
     [-.68, 3.55, 1.7], [.68, 3.55, 1.7],
     [-.72, 2.55, 2.05], [.72, 2.55, 2.05]
-  ].map(([x, y, z], index) => {
+  ];
+  const candleLights = candleLightPositions.map(([x, y, z], index) => {
     const candleLight = new THREE.PointLight(0xffa64f, 2.6, 3.8, 2);
     candleLight.position.set(x, y, z);
     stage.add(candleLight);
@@ -153,6 +178,7 @@ export function createAltar(canvas) {
   });
 
   const altar = new THREE.Group();
+  altar.scale.setScalar(altarScale);
   stage.add(altar);
 
   const floorMaterial = new THREE.MeshStandardMaterial({
@@ -236,6 +262,8 @@ export function createAltar(canvas) {
   contactShadow.renderOrder = 1;
   stage.add(contactShadow);
 
+  let markFloorTextureReady;
+  const floorTextureReady = new Promise(resolve => { markFloorTextureReady = resolve; });
   new THREE.TextureLoader().load(
     FLOOR_TEXTURE_URL,
     texture => {
@@ -243,24 +271,31 @@ export function createAltar(canvas) {
       texture.wrapS = THREE.RepeatWrapping;
       texture.wrapT = THREE.RepeatWrapping;
       texture.repeat.set(22.5, 22.5);
-      texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
-
-      const bumpTexture = texture.clone();
-      bumpTexture.colorSpace = THREE.NoColorSpace;
-      bumpTexture.wrapS = THREE.RepeatWrapping;
-      bumpTexture.wrapT = THREE.RepeatWrapping;
-      bumpTexture.repeat.set(22.5, 22.5);
-      bumpTexture.needsUpdate = true;
+      texture.anisotropy = mobileProfile
+        ? Math.min(2, renderer.capabilities.getMaxAnisotropy())
+        : renderer.capabilities.getMaxAnisotropy();
 
       floorMaterial.map = texture;
-      floorMaterial.bumpMap = bumpTexture;
-      floorMaterial.bumpScale = .024;
+      if (!mobileProfile) {
+        const bumpTexture = texture.clone();
+        bumpTexture.colorSpace = THREE.NoColorSpace;
+        bumpTexture.wrapS = THREE.RepeatWrapping;
+        bumpTexture.wrapT = THREE.RepeatWrapping;
+        bumpTexture.repeat.set(22.5, 22.5);
+        bumpTexture.needsUpdate = true;
+        floorMaterial.bumpMap = bumpTexture;
+        floorMaterial.bumpScale = .024;
+      }
       floorMaterial.color.set('#ffffff');
       floorMaterial.needsUpdate = true;
+      markFloorTextureReady();
       render();
     },
     undefined,
-    error => console.error('No se pudo cargar la textura del piso:', error)
+    error => {
+      console.error('No se pudo cargar la textura del piso:', error);
+      markFloorTextureReady();
+    }
   );
 
   const photoGroup = new THREE.Group();
@@ -279,6 +314,8 @@ export function createAltar(canvas) {
   let lastX = 0;
   let targetRotation = 0;
   let capturingPhotoSession = false;
+  let dedication = '';
+  const dedicationOverlay = document.querySelector('#dedicationOverlay');
   const developerMode = new URLSearchParams(window.location.search).get('dev') === '1';
 
   const photoFrames = ALTAR_PHOTO_FRAMES;
@@ -426,9 +463,56 @@ export function createAltar(canvas) {
     render();
   }
 
+  function setDedication(value = '') {
+    dedication = String(value).trim().slice(0, 180);
+    if (dedicationOverlay) dedicationOverlay.textContent = dedication;
+    render();
+    return dedication;
+  }
+
+  function drawDedication(context, value) {
+    if (!value) return;
+    const width = context.canvas.width;
+    const height = context.canvas.height;
+    const shade = context.createLinearGradient(0, height * .72, 0, height);
+    shade.addColorStop(0, 'rgba(20, 10, 19, 0)');
+    shade.addColorStop(1, 'rgba(20, 10, 19, .82)');
+    context.fillStyle = shade;
+    context.fillRect(0, height * .72, width, height * .28);
+
+    const maxWidth = width * .82;
+    const lines = [];
+    let line = '';
+    value.split(/\s+/).forEach(word => {
+      const candidate = line ? `${line} ${word}` : word;
+      context.font = 'italic 48px Georgia, serif';
+      if (context.measureText(candidate).width > maxWidth && line) {
+        lines.push(line);
+        line = word;
+      } else line = candidate;
+    });
+    if (line) lines.push(line);
+    const visibleLines = lines.slice(0, 3);
+    context.save();
+    context.textAlign = 'center';
+    context.textBaseline = 'middle';
+    context.font = 'italic 48px Georgia, serif';
+    context.fillStyle = '#ffd58a';
+    context.shadowColor = 'rgba(20, 8, 16, .9)';
+    context.shadowBlur = 16;
+    const lineHeight = 58;
+    const firstY = height * .9 - ((visibleLines.length - 1) * lineHeight) / 2;
+    visibleLines.forEach((text, index) => {
+      const shortened = text.length > 80 ? `${text.slice(0, 77)}…` : text;
+      context.fillText(shortened, width / 2, firstY + index * lineHeight, maxWidth);
+    });
+    context.restore();
+  }
+
   function setImages(images = []) {
     selectedImages = images.slice(0, 5);
     renderPhotoFrames();
+    scheduleAnimation();
   }
 
   const status = document.querySelector('#altarModelStatus');
@@ -471,15 +555,17 @@ export function createAltar(canvas) {
     });
   }
 
-  function loadTexture(url, colorSpace) {
+  function loadTexture(url, colorSpace, manager) {
     return new Promise((resolve, reject) => {
-      new THREE.TextureLoader().load(
+      new THREE.TextureLoader(manager).load(
         url,
         texture => {
           texture.colorSpace = colorSpace;
           texture.wrapS = THREE.ClampToEdgeWrapping;
           texture.wrapT = THREE.ClampToEdgeWrapping;
-          texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+          texture.anisotropy = mobileProfile
+            ? Math.min(2, renderer.capabilities.getMaxAnisotropy())
+            : renderer.capabilities.getMaxAnisotropy();
           resolve(texture);
         },
         undefined,
@@ -488,17 +574,23 @@ export function createAltar(canvas) {
     });
   }
 
-  async function loadTexturedModel() {
+  async function loadTexturedModel(onProgress) {
     setModelStatus('Cargando altar texturizado…');
-    const objLoader = new OBJLoader();
+    const manager = new THREE.LoadingManager();
+    manager.onProgress = (_url, loaded, total) => onProgress?.(10 + Math.round(40 * loaded / total));
+    // Mantener la malla OBJ original evita las diferencias de UV que aparecían
+    // en algunos móviles con el GLB convertido.
     const objectPromise = new Promise((resolve, reject) => {
-      objLoader.load(TEXTURED_MODEL_URL, resolve, undefined, reject);
+      new OBJLoader(manager).load(TEXTURED_MODEL_URL, resolve, undefined, reject);
     });
+    const diffuseUrl = mobileProfile ? MOBILE_DIFFUSE_URL : TEXTURED_DIFFUSE_URL;
+    const normalUrl = mobileProfile ? MOBILE_NORMAL_URL : TEXTURED_NORMAL_URL;
+    const roughnessUrl = mobileProfile ? MOBILE_ROUGHNESS_URL : TEXTURED_ROUGHNESS_URL;
     const [object, diffuseMap, normalMap, roughnessMap] = await Promise.all([
       objectPromise,
-      loadTexture(TEXTURED_DIFFUSE_URL, THREE.SRGBColorSpace),
-      loadTexture(TEXTURED_NORMAL_URL, THREE.NoColorSpace),
-      loadTexture(TEXTURED_ROUGHNESS_URL, THREE.NoColorSpace)
+      loadTexture(diffuseUrl, THREE.SRGBColorSpace, manager),
+      loadTexture(normalUrl, THREE.NoColorSpace, manager),
+      loadTexture(roughnessUrl, THREE.NoColorSpace, manager)
     ]);
 
     const material = new THREE.MeshStandardMaterial({
@@ -526,7 +618,7 @@ export function createAltar(canvas) {
     installModel('textured', object, bounds, 'y');
   }
 
-  async function loadDetailedModel() {
+  async function loadDetailedModel(onProgress) {
     setModelStatus('Cargando modelo STL detallado…');
     const geometry = await new Promise((resolve, reject) => {
       new STLLoader().load(
@@ -534,7 +626,9 @@ export function createAltar(canvas) {
         resolve,
         event => {
           if (event.lengthComputable && event.total > 0) {
-            setModelStatus(`Cargando STL detallado… ${Math.round(event.loaded / event.total * 100)}%`);
+            const progress = Math.round(event.loaded / event.total * 100);
+            setModelStatus(`Cargando STL detallado… ${progress}%`);
+            onProgress?.(10 + Math.round(progress * .4));
           }
         },
         reject
@@ -547,10 +641,13 @@ export function createAltar(canvas) {
     installModel('detailed', mesh, geometry.boundingBox, 'z');
   }
 
-  async function ensureModelLoaded(kind) {
-    if (modelInstances.has(kind)) return;
+  async function ensureModelLoaded(kind, onProgress) {
+    if (modelInstances.has(kind)) {
+      onProgress?.(50);
+      return;
+    }
     if (!modelPromises.has(kind)) {
-      const promise = kind === 'textured' ? loadTexturedModel() : loadDetailedModel();
+      const promise = kind === 'textured' ? loadTexturedModel(onProgress) : loadDetailedModel(onProgress);
       modelPromises.set(kind, promise);
     }
     try {
@@ -561,22 +658,30 @@ export function createAltar(canvas) {
     }
   }
 
-  async function setModelVariant(kind) {
+  async function setModelVariant(kind, onProgress) {
     if (kind !== 'textured' && kind !== 'detailed') {
       throw new Error(`Variante de modelo desconocida: ${kind}`);
     }
     if (capturingPhotoSession) throw new Error('Espera a que termine la sesión de fotos para cambiar de modelo.');
     const requestId = ++modelSelectionRequest;
-    if (activeModelKind === kind && modelInstances.has(kind)) return kind;
+    if (activeModelKind === kind && modelInstances.has(kind)) {
+      onProgress?.(50);
+      return kind;
+    }
 
     try {
-      await ensureModelLoaded(kind);
+      await ensureModelLoaded(kind, onProgress);
+      await floorTextureReady;
       if (requestId !== modelSelectionRequest) return activeModelKind;
       modelInstances.forEach((instance, name) => { instance.visible = name === kind; });
       activeModelKind = kind;
+      window.dispatchEvent(new CustomEvent('altar:modelchange', {
+        detail: { kind, dimensions: getModelDimensions(kind) }
+      }));
       renderPhotoFrames();
       if (status) status.hidden = true;
       render();
+      scheduleAnimation();
       return kind;
     } catch (error) {
       console.error(`No se pudo cargar la variante ${kind}:`, error);
@@ -587,22 +692,44 @@ export function createAltar(canvas) {
     }
   }
 
-  setModelVariant('textured').catch(() => {
-    setModelStatus('No se pudo cargar el altar texturizado. Recarga la página para intentarlo otra vez.');
-  });
+  function getModelDimensions(kind = activeModelKind) {
+    const placement = modelPlacements.get(kind);
+    if (!placement) return null;
+    const { size, scale, upAxis } = placement;
+    return upAxis === 'z'
+      ? { width: size.x * scale * altarScale, height: size.z * scale * altarScale, depth: size.y * scale * altarScale }
+      : { width: size.x * scale * altarScale, height: size.y * scale * altarScale, depth: size.z * scale * altarScale };
+  }
 
-  canvas.addEventListener('pointerdown', event => {
-    dragging = true;
-    lastX = event.clientX;
-    canvas.setPointerCapture(event.pointerId);
-  });
-  canvas.addEventListener('pointermove', event => {
-    if (!dragging) return;
-    targetRotation += (event.clientX - lastX) * .008;
-    lastX = event.clientX;
-  });
-  canvas.addEventListener('pointerup', () => { dragging = false; });
-  canvas.addEventListener('pointercancel', () => { dragging = false; });
+  if (mobileProfile) {
+    canvas.addEventListener('pointerdown', event => {
+      if (event.pointerType === 'mouse') return;
+      dragging = true;
+      lastX = event.clientX;
+      canvas.setPointerCapture(event.pointerId);
+      scheduleAnimation();
+    });
+    canvas.addEventListener('pointermove', event => {
+      if (!dragging) return;
+      const movement = event.clientX - lastX;
+      lastX = event.clientX;
+      targetRotation = THREE.MathUtils.clamp(
+        targetRotation + movement * .008,
+        -MAX_SCENE_ROTATION,
+        MAX_SCENE_ROTATION
+      );
+      scheduleAnimation();
+    });
+    canvas.addEventListener('pointerup', () => { dragging = false; });
+    canvas.addEventListener('pointercancel', () => { dragging = false; });
+  } else {
+    window.addEventListener('pointermove', event => {
+      if (event.pointerType !== 'mouse' || capturingPhotoSession) return;
+      const horizontalProgress = THREE.MathUtils.clamp(event.clientX / window.innerWidth, 0, 1);
+      targetRotation = (horizontalProgress * 2 - 1) * MAX_SCENE_ROTATION;
+      scheduleAnimation();
+    });
+  }
 
   function resize() {
     const width = canvas.clientWidth;
@@ -612,35 +739,89 @@ export function createAltar(canvas) {
     camera.aspect = width / height;
     camera.updateProjectionMatrix();
     render();
+    scheduleAnimation();
   }
+
+  let animationFrameId = null;
+  let canvasInViewport = false;
+  let lastRenderedAt = 0;
+  let lastAnimationTime = 0;
+  const canRender = () => !document.hidden && canvasInViewport && canvas.clientWidth > 0 && canvas.clientHeight > 0;
+
+  function stopAnimationLoop() {
+    if (animationFrameId === null) return;
+    cancelAnimationFrame(animationFrameId);
+    animationFrameId = null;
+  }
+
+  function scheduleAnimation() {
+    if (animationFrameId !== null || !canRender()) return;
+    animationFrameId = requestAnimationFrame(animate);
+  }
+
   const resizeObserver = new ResizeObserver(resize);
   resizeObserver.observe(canvas);
+  const intersectionObserver = typeof IntersectionObserver === 'function'
+    ? new IntersectionObserver(entries => {
+      canvasInViewport = Boolean(entries[0]?.isIntersecting);
+      if (canvasInViewport) {
+        render();
+        scheduleAnimation();
+      } else stopAnimationLoop();
+    })
+    : null;
+  if (intersectionObserver) intersectionObserver.observe(canvas.parentElement || canvas);
+  else canvasInViewport = true;
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) stopAnimationLoop();
+    else scheduleAnimation();
+  });
   resize();
 
-  function animate() {
-    requestAnimationFrame(animate);
-    const time = performance.now() * .001;
-    candleLights.forEach(({ light, phase }) => {
-      // Variación leve e independiente para que la luz parezca provenir de llamas.
-      light.intensity = 2.6 + Math.sin(time * 7 + phase) * .16 + Math.sin(time * 13 + phase * 2) * .08;
-    });
+  function animate(timestamp) {
+    animationFrameId = null;
+    if (!canRender()) return;
+    const mobileFrameInterval = mobileProfile ? 1000 / 24 : 0;
+    if (mobileProfile && timestamp - lastRenderedAt < mobileFrameInterval) {
+      scheduleAnimation();
+      return;
+    }
+    const deltaSeconds = lastAnimationTime
+      ? Math.min((timestamp - lastAnimationTime) / 1000, .1)
+      : 1 / 60;
+    lastRenderedAt = timestamp;
+    lastAnimationTime = timestamp;
+    if (!mobileProfile) {
+      const time = timestamp * .001;
+      candleLights.forEach(({ light, phase }) => {
+        // El parpadeo completo se conserva en escritorio; móvil usa luz estable.
+        light.intensity = 2.6 + Math.sin(time * 7 + phase) * .16 + Math.sin(time * 13 + phase * 2) * .08;
+      });
+    }
     if (!capturingPhotoSession) {
       stage.rotation.y += (targetRotation - stage.rotation.y) * .06;
-      if (!dragging && !developerMode) targetRotation += .0012;
       if (selectedImages.length > photoFrames.length) {
         const step = Math.floor((Date.now() - carouselStartedAt) / 4500);
         if (step !== activeCarouselStep) applyCarouselStep(step);
       }
     }
     render();
+    const modelReady = modelInstances.has(activeModelKind);
+    const isTurning = Math.abs(stage.rotation.y - targetRotation) > .001;
+    const shouldKeepAnimating = !capturingPhotoSession && (
+      isTurning ||
+      dragging ||
+      (!mobileProfile && !developerMode && modelReady) ||
+      (modelReady && selectedImages.length > photoFrames.length)
+    );
+    if (shouldKeepAnimating) scheduleAnimation();
   }
-  animate();
 
-  async function capturePhotoSession() {
+  async function capturePhotoSession(onProgress) {
     await ensureModelLoaded(activeModelKind);
 
-    const backdrop = await loadModelBackdrop();
-    const target = new THREE.Vector3(0, 2.7, 0);
+    const backdrop = await loadModelBackdrop(mobileProfile ? MOBILE_MODEL_BACKDROP_URL : MODEL_BACKDROP_URL);
+    const target = new THREE.Vector3(0, cameraTargetHeight, 0);
     const originalSize = renderer.getSize(new THREE.Vector2());
     const originalPixelRatio = renderer.getPixelRatio();
     const originalAspect = camera.aspect;
@@ -651,8 +832,8 @@ export function createAltar(canvas) {
     const originalCarouselStep = activeCarouselStep;
     const radius = camera.position.distanceTo(target);
     const output = document.createElement('canvas');
-    output.width = PHOTO_SESSION_SIZE;
-    output.height = PHOTO_SESSION_SIZE;
+    output.width = photoSessionSize;
+    output.height = photoSessionSize;
     const context = output.getContext('2d');
     const captures = [];
 
@@ -663,11 +844,12 @@ export function createAltar(canvas) {
 
     try {
       renderer.setPixelRatio(1);
-      renderer.setSize(PHOTO_SESSION_SIZE, PHOTO_SESSION_SIZE, false);
+      renderer.setSize(photoSessionSize, photoSessionSize, false);
       camera.aspect = 1;
       camera.updateProjectionMatrix();
 
-      for (const view of PHOTO_SESSION_VIEWS) {
+      for (const [viewIndex, view] of PHOTO_SESSION_VIEWS.entries()) {
+        onProgress?.({ phase: 'start', index: viewIndex, total: PHOTO_SESSION_VIEWS.length, view });
         const azimuth = THREE.MathUtils.degToRad(view.azimuth);
         const elevation = THREE.MathUtils.degToRad(view.elevation);
         const horizontalRadius = radius * Math.cos(elevation);
@@ -688,20 +870,30 @@ export function createAltar(canvas) {
           const scale = Math.max(output.width / backdrop.width, output.height / backdrop.height) * 1.12;
           const width = backdrop.width * scale;
           const height = backdrop.height * scale;
-          context.filter = 'blur(42px) brightness(.4) saturate(.72)';
+          context.filter = mobileProfile ? 'none' : 'blur(42px) brightness(.4) saturate(.72)';
           context.drawImage(backdrop, (output.width - width) / 2, (output.height - height) / 2, width, height);
           context.filter = 'none';
           context.fillStyle = 'rgba(15, 8, 16, .56)';
           context.fillRect(0, 0, output.width, output.height);
         }
         context.drawImage(canvas, 0, 0, output.width, output.height);
+        drawDedication(context, dedication);
 
-        captures.push({
+        const capture = {
           id: view.id,
           label: view.label,
           filename: `ofrenda-${view.id}.jpg`,
           parameterName: `photo_${view.id.replaceAll('-', '_')}`,
-          blob: await canvasToJpeg(output)
+          blob: await canvasToJpeg(output, photoJpegQuality)
+        };
+        captures.push(capture);
+        onProgress?.({
+          phase: 'complete',
+          index: viewIndex,
+          total: PHOTO_SESSION_VIEWS.length,
+          view,
+          capture,
+          completion: (viewIndex + 1) / PHOTO_SESSION_VIEWS.length
         });
       }
       return captures;
@@ -717,13 +909,16 @@ export function createAltar(canvas) {
       capturingPhotoSession = false;
       if (selectedImages.length > photoFrames.length) applyCarouselStep(originalCarouselStep);
       render();
+      scheduleAnimation();
     }
   }
 
   return {
     setImages,
+    setDedication,
     setModelVariant,
     getModelVariant: () => activeModelKind,
+    getModelDimensions,
     getPhotoCalibration,
     getAllPhotoCalibrations,
     setPhotoCalibration,

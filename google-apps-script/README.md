@@ -12,6 +12,8 @@ key de Resend ni EmailJS.
 2. En el editor, selecciona `authorizeMailApp` y pulsa **Ejecutar**. Acepta el
    permiso para enviar correo desde la cuenta propietaria.
 3. Confirma que la pestaña se llame exactamente `Hoja 1`.
+   El registro añadirá la columna `Dedicatoria` después de `Message` si la
+   fila de encabezados ya existía.
 4. Abre **Implementar → Administrar implementaciones**, edita la aplicación
    web, selecciona **Nueva versión** y pulsa **Implementar**. Mantén la
    configuración para ejecutar como tú y permitir acceso a quienes usan la
@@ -25,5 +27,5 @@ y los adjuntos tienen un límite total de 25 MB por mensaje. Este script aplica
 un margen preventivo de 20 MB y limita a un envío por dirección cada 60
 segundos. Las cuotas pueden variar; el registro de la hoja guarda los errores.
 
-El correo muestra las cinco imágenes inline. El HTML se construye en `Code.gs`;
+El correo muestra las cinco imágenes inline junto con la dedicatoria. El HTML se construye en `Code.gs`;
 `template-email.html` se conserva como referencia visual.

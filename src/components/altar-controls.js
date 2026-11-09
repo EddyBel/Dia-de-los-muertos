@@ -9,10 +9,46 @@ export function setupAltarControls({ altar } = {}) {
   const calibrationInputs = [...document.querySelectorAll('[data-calibration]')];
   const calibrationOutput = document.querySelector('#photoCalibrationOutput');
   const calibrationStatus = document.querySelector('#photoCalibrationStatus');
+  const modelDimensions = document.querySelector('#modelDimensions');
+  const developerTools = document.querySelector('#developerTools');
+  const developerToolsToggle = document.querySelector('#developerToolsToggle');
+  const developerToolsPanel = document.querySelector('#developerToolsPanel');
+  const developerToolsClose = document.querySelector('#developerToolsClose');
   const developerMode = new URLSearchParams(window.location.search).get('dev') === '1';
 
   if (modelVariantControls) modelVariantControls.hidden = !developerMode;
   if (photoCalibrationControls) photoCalibrationControls.hidden = !developerMode;
+  if (modelDimensions) modelDimensions.hidden = !developerMode;
+  if (developerTools) developerTools.hidden = !developerMode;
+
+  function setDeveloperPanelOpen(open) {
+    if (!developerToolsPanel || !developerToolsToggle) return;
+    developerToolsPanel.hidden = !open;
+    developerToolsToggle.setAttribute('aria-expanded', String(open));
+    if (open) developerToolsClose?.focus();
+    else developerToolsToggle.focus();
+  }
+
+  developerToolsToggle?.addEventListener('click', () => {
+    setDeveloperPanelOpen(developerToolsPanel?.hidden ?? true);
+  });
+  developerToolsClose?.addEventListener('click', () => setDeveloperPanelOpen(false));
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && developerToolsPanel && !developerToolsPanel.hidden) {
+      setDeveloperPanelOpen(false);
+    }
+  });
+
+  function showModelDimensions(dimensions) {
+    if (!developerMode || !modelDimensions || !dimensions) return;
+    const format = value => Number(value).toFixed(2);
+    modelDimensions.textContent = `Modelo · ${format(dimensions.width)} × ${format(dimensions.height)} × ${format(dimensions.depth)} u (ancho × alto × fondo)`;
+  }
+
+  if (developerMode) {
+    window.addEventListener('altar:modelchange', event => showModelDimensions(event.detail?.dimensions));
+    showModelDimensions(altar?.getModelDimensions?.());
+  }
 
   if (viewport && fullscreenButton) {
     if (!viewport.requestFullscreen || !document.exitFullscreen) {

@@ -12,7 +12,8 @@
   {
     "imports": {
       "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
+      "animejs": "https://cdn.jsdelivr.net/npm/animejs@4.5.0/+esm"
     }
   }
   </script>
@@ -28,8 +29,8 @@
   <div class="ambient-background__shade"></div>
 </div>
 
-<header class="mx-auto max-w-6xl px-5 pt-8 relative z-10">
-  <nav class="flex justify-between items-center">
+<header class="site-header">
+  <nav class="site-header__nav">
     <span class="text-sm tracking-[.25em] uppercase text-amber-200">
       Memoria Viva
     </span>
@@ -41,8 +42,16 @@
 
 <main class="mx-auto max-w-6xl px-5 relative z-10">
 
-  <section class="grid items-center gap-10 py-14 md:grid-cols-2 md:py-20">
-    <div>
+  <section id="homeView" class="home-view" aria-label="Inicio">
+    <div id="heroSceneSlot" class="hero-scene-slot" aria-hidden="true">
+      <div id="altarViewport" class="model-viewport hero-scene-viewport">
+        <div class="model-backdrop" aria-hidden="true"></div>
+        <canvas id="altar" aria-label="Modelo 3D de la ofrenda"></canvas>
+        <p id="dedicationOverlay" class="dedication-overlay" aria-live="polite"></p>
+        <button id="altarFullscreen" class="altar-fullscreen-button" type="button" aria-label="Ver la ofrenda en pantalla completa" title="Pantalla completa"><span aria-hidden="true">⛶</span><span class="altar-fullscreen-button__label">Pantalla completa</span></button>
+      </div>
+    </div>
+    <div id="heroCopy" class="hero-copy relative z-10">
       <p class="mb-4 text-xs uppercase tracking-[.35em] text-amber-300">
         Una luz que nunca se apaga
       </p>
@@ -60,89 +69,16 @@
         Comparte sus fotografías y mantén viva su memoria.
       </p>
 
-      <a href="#crear"
+      <button id="beginCreation" type="button"
          class="mt-8 inline-block rounded-full bg-amber-400 px-6 py-3 font-semibold text-stone-950 hover:bg-amber-300">
         Crear mi ofrenda ↗
-      </a>
+      </button>
     </div>
 
-    <div id="altarExperience" class="glow overflow-hidden rounded-3xl border border-amber-100/10 bg-[#211522]">
-      <div class="flex flex-wrap items-center justify-between gap-3 px-5 pt-5">
-        <span class="text-xs uppercase tracking-widest text-amber-200">
-          Ofrenda interactiva
-        </span>
-        <div id="modelVariantControls" class="altar-model-switch" role="group" aria-label="Elegir modelo del altar" hidden>
-          <button id="texturedModelButton" type="button" aria-pressed="true">Texturizado</button>
-          <button id="detailedModelButton" type="button" aria-pressed="false">STL detallado</button>
-        </div>
-      </div>
-
-      <p id="altarModelStatus" role="status" aria-live="polite"
-         class="px-5 pt-3 text-center text-xs text-amber-200/75">
-        Cargando modelo 3D…
-      </p>
-      <div id="altarViewport" class="model-viewport">
-        <div class="model-backdrop" aria-hidden="true"></div>
-        <canvas id="altar"></canvas>
-        <button id="altarFullscreen" class="altar-fullscreen-button" type="button" aria-label="Ver la ofrenda en pantalla completa" title="Pantalla completa">
-          <span aria-hidden="true">⛶</span>
-          <span class="altar-fullscreen-button__label">Pantalla completa</span>
-        </button>
-      </div>
-
-      <section id="photoCalibrationControls" class="photo-calibration" aria-label="Ajuste de fotos en los marcos" hidden>
-        <div class="photo-calibration__heading">
-          <div>
-            <h3>Ajuste de fotos · modo desarrollador</h3>
-            <p>Elige un marco y edita su posición y tamaño en coordenadas del modelo.</p>
-          </div>
-          <button id="resetPhotoCalibration" class="photo-calibration__secondary" type="button">Restablecer marco</button>
-        </div>
-        <div class="photo-calibration__fields">
-          <label>Marco
-            <select id="calibrationFrame">
-              <option value="left">Izquierdo</option>
-              <option value="center">Centro</option>
-              <option value="right">Derecho</option>
-            </select>
-          </label>
-          <label>X
-            <input data-calibration="x" type="number" step="0.002">
-          </label>
-          <label>Y · altura
-            <input data-calibration="y" type="number" step="0.002">
-          </label>
-          <label>Z · profundidad
-            <input data-calibration="z" type="number" step="0.002">
-          </label>
-          <label>Ancho
-            <input data-calibration="width" type="number" min="0.005" step="0.002">
-          </label>
-          <label>Alto
-            <input data-calibration="height" type="number" min="0.005" step="0.002">
-          </label>
-        </div>
-        <label class="photo-calibration__output-label" for="photoCalibrationOutput">Coordenadas y tamaños actuales</label>
-        <textarea id="photoCalibrationOutput" readonly spellcheck="false"></textarea>
-        <div class="photo-calibration__actions">
-          <button id="copyPhotoCalibration" type="button">Copiar coordenadas</button>
-          <span id="photoCalibrationStatus" role="status" aria-live="polite"></span>
-        </div>
-      </section>
-
-      <div class="flex flex-col items-center gap-3 px-5 pb-5 text-center">
-        <p class="text-xs text-rose-100/50">Arrastra para explorar la ofrenda.</p>
-        <button id="downloadPhotoSession" type="button" hidden
-                class="rounded-full border border-amber-200/30 px-5 py-2 text-sm font-medium text-amber-100 hover:bg-amber-200/10">
-          Descargar sesión de fotos
-        </button>
-        <p id="photoSessionStatus" role="status" aria-live="polite" hidden
-           class="max-w-xl text-xs text-amber-200"></p>
-      </div>
-    </div>
   </section>
 
-  <section id="crear" class="mx-auto max-w-3xl py-10">
+  <section id="crear" class="creation-view mx-auto max-w-3xl py-6 sm:py-10" aria-label="Crear una ofrenda" hidden>
+    <button id="backToHome" type="button" class="creation-back">← Volver al inicio</button>
     <div class="mb-8 text-center">
       <p class="text-xs uppercase tracking-widest text-amber-300">
         Tu homenaje
@@ -153,43 +89,34 @@
       </p>
     </div>
 
-    <form id="memoryForm"
-          class="glow rounded-3xl border border-amber-100/10 bg-[#211522] p-6 sm:p-8">
-
-      <div class="grid gap-5 sm:grid-cols-2">
-        <label>
-          <span class="mb-2 block text-sm text-amber-100">Tu nombre *</span>
-          <input
-            id="name"
-            name="name"
-            required
-            maxlength="100"
-            autocomplete="name"
-            placeholder="¿Cómo te llamas?"
-            class="field w-full rounded-xl px-4 py-3">
-        </label>
-
-        <label>
-          <span class="mb-2 block text-sm text-amber-100">
-            Correo electrónico *
-          </span>
-          <input
-            id="email"
-            name="email"
-            type="email"
-            required
-            maxlength="200"
-            autocomplete="email"
-            placeholder="tu@correo.com"
-            class="field w-full rounded-xl px-4 py-3">
-        </label>
+    <form id="memoryForm" class="glow rounded-3xl border border-amber-100/10 bg-[#211522] p-5 sm:p-8">
+      <div class="wizard-progress" aria-label="Progreso del formulario">
+        <div class="wizard-progress__track"><span id="wizardProgressFill"></span></div>
+        <p id="wizardStepLabel" aria-live="polite">Paso 1 de 2 · Tus datos</p>
       </div>
 
-      <div class="mt-7">
+      <section class="wizard-step" data-wizard-step="1" aria-label="Tus datos">
+        <div class="grid gap-5">
+          <label><span class="mb-2 block text-sm text-amber-100">Tu nombre *</span>
+            <input id="name" name="name" required maxlength="100" autocomplete="name" placeholder="¿Cómo te llamas?" class="field w-full rounded-xl px-4 py-3">
+          </label>
+          <label><span class="mb-2 block text-sm text-amber-100">Correo electrónico *</span>
+            <input id="email" name="email" type="email" required maxlength="200" autocomplete="email" placeholder="tu@correo.com" class="field w-full rounded-xl px-4 py-3">
+          </label>
+          <label><span class="mb-2 block text-sm text-amber-100">Dedicatoria <span class="text-rose-100/45">(opcional)</span></span>
+            <textarea id="dedication" name="dedication" maxlength="180" rows="3" placeholder="Si quieres, escribe unas palabras para recordarles…" class="field w-full resize-y rounded-xl px-4 py-3"></textarea>
+            <span class="mt-1 block text-right text-xs text-rose-100/45"><span id="dedicationCount">0</span>/180</span>
+          </label>
+        </div>
+        <button id="wizardNext" type="button" class="wizard-primary mt-6 w-full">Continuar con las fotografías →</button>
+      </section>
+
+      <section class="wizard-step" data-wizard-step="2" aria-label="Fotografías" hidden>
+      <div>
         <div class="flex justify-between items-end">
           <div>
-            <label class="block text-sm text-amber-100">Fotografías</label>
-            <p class="mt-1 text-xs text-rose-100/55">Hasta 5 imágenes; si eliges más de 3, alternan en los marcos.</p>
+            <label class="block text-sm text-amber-100">Fotografías para la ofrenda *</label>
+            <p class="mt-1 text-xs text-rose-100/55">Elige de 1 a 5 imágenes. Se optimizan en tu dispositivo.</p>
           </div>
           <span id="photoCount" class="text-xs text-amber-300">0 / 5</span>
         </div>
@@ -221,7 +148,7 @@
           class="mt-1 accent-amber-400">
 
         <span>
-          Acepto que mi nombre y correo electrónico se utilicen
+          Acepto que mi nombre, correo y dedicatoria se utilicen
           para registrar mi participación.
 
           Las fotos originales no se guardan en este sitio. Al enviar el formulario,
@@ -231,12 +158,11 @@
         </span>
       </label>
 
-      <button
-        id="submitBtn"
-        type="submit"
-        class="mt-7 w-full rounded-full bg-amber-400 px-6 py-4 font-semibold text-stone-950 hover:bg-amber-300 disabled:opacity-50">
-        Registrar mi participación
-      </button>
+      <div class="mt-6 grid grid-cols-2 gap-3">
+        <button id="wizardBack" type="button" class="wizard-secondary">← Atrás</button>
+        <button id="submitBtn" type="submit" class="wizard-primary">Empezar generación ✨</button>
+      </div>
+      </section>
 
       <p id="status"
          role="status"
@@ -244,7 +170,6 @@
          class="mt-4 text-center text-sm text-amber-200">
       </p>
     </form>
-  </section>
 
   <footer class="mt-16 border-t border-amber-100/10 py-8 text-center text-xs text-rose-100/40">
     Hecho para recordar · Memoria, amor y tradición.
@@ -254,7 +179,98 @@
       <a class="underline hover:text-amber-200" href="https://creativecommons.org/licenses/by-nc/4.0/" target="_blank" rel="noreferrer">CC BY-NC 4.0</a>.
     </p>
   </footer>
+  </section>
+
+  <section id="generationStage" class="generation-stage" hidden aria-label="Generando tu ofrenda">
+    <div class="generation-stage__top">
+      <div><p class="generation-stage__eyebrow">MEMORIA VIVA</p><h2>Preparando tu ofrenda</h2></div>
+      <button id="generationClose" type="button" hidden>Volver</button>
+    </div>
+    <div id="generationViewportSlot" class="generation-viewport-slot"></div>
+    <div id="generationLoader" class="generation-loader" role="status" aria-live="polite">
+      <div class="generation-loader__copy"><p id="generationMessage">Preparando tus fotografías…</p><span id="generationPercent">0%</span></div>
+      <div id="generationProgress" class="generation-progress" role="progressbar" aria-label="Progreso de generación" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="generationProgressFill"></span></div>
+    </div>
+    <div id="captureGallery" class="capture-gallery" role="list" aria-label="Vistas de tu ofrenda">
+      <article class="capture-card" data-capture-card="frontal" role="listitem" aria-label="Vista frontal">
+        <div class="capture-card__pending"><img src="./public/images/calavera-loader.svg" alt="" aria-hidden="true"><span>En espera</span></div>
+        <img class="capture-card__image" alt="Ofrenda, vista frontal" role="button" tabindex="-1" aria-label="Ampliar captura de la ofrenda" hidden>
+        <button class="capture-card__download" type="button" aria-label="Descargar captura frontal" title="Descargar esta foto" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v11m0 0 4-4m-4 4-4-4M5 17v3h14v-3"/></svg></button>
+      </article>
+      <article class="capture-card" data-capture-card="tres-cuartos-derecha" role="listitem" aria-label="Vista tres cuartos derecha">
+        <div class="capture-card__pending"><img src="./public/images/calavera-loader.svg" alt="" aria-hidden="true"><span>En espera</span></div>
+        <img class="capture-card__image" alt="Ofrenda, tres cuartos derecha" role="button" tabindex="-1" aria-label="Ampliar captura de la ofrenda" hidden>
+        <button class="capture-card__download" type="button" aria-label="Descargar captura tres cuartos derecha" title="Descargar esta foto" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v11m0 0 4-4m-4 4-4-4M5 17v3h14v-3"/></svg></button>
+      </article>
+      <article class="capture-card" data-capture-card="tres-cuartos-izquierda" role="listitem" aria-label="Vista tres cuartos izquierda">
+        <div class="capture-card__pending"><img src="./public/images/calavera-loader.svg" alt="" aria-hidden="true"><span>En espera</span></div>
+        <img class="capture-card__image" alt="Ofrenda, tres cuartos izquierda" role="button" tabindex="-1" aria-label="Ampliar captura de la ofrenda" hidden>
+        <button class="capture-card__download" type="button" aria-label="Descargar captura tres cuartos izquierda" title="Descargar esta foto" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v11m0 0 4-4m-4 4-4-4M5 17v3h14v-3"/></svg></button>
+      </article>
+      <article class="capture-card" data-capture-card="picado" role="listitem" aria-label="Vista picada">
+        <div class="capture-card__pending"><img src="./public/images/calavera-loader.svg" alt="" aria-hidden="true"><span>En espera</span></div>
+        <img class="capture-card__image" alt="Ofrenda, vista picada" role="button" tabindex="-1" aria-label="Ampliar captura de la ofrenda" hidden>
+        <button class="capture-card__download" type="button" aria-label="Descargar captura picada" title="Descargar esta foto" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v11m0 0 4-4m-4 4-4-4M5 17v3h14v-3"/></svg></button>
+      </article>
+      <article class="capture-card" data-capture-card="contrapicado" role="listitem" aria-label="Vista contrapicada">
+        <div class="capture-card__pending"><img src="./public/images/calavera-loader.svg" alt="" aria-hidden="true"><span>En espera</span></div>
+        <img class="capture-card__image" alt="Ofrenda, vista contrapicada" role="button" tabindex="-1" aria-label="Ampliar captura de la ofrenda" hidden>
+        <button class="capture-card__download" type="button" aria-label="Descargar captura contrapicada" title="Descargar esta foto" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v11m0 0 4-4m-4 4-4-4M5 17v3h14v-3"/></svg></button>
+      </article>
+    </div>
+    <div class="generation-stage__actions">
+      <p id="photoSessionStatus" role="status" aria-live="polite" hidden></p>
+      <button id="downloadPhotoSession" type="button" hidden class="wizard-secondary">Descargar sesión de fotos</button>
+    </div>
+  </section>
 </main>
+
+<dialog id="captureLightbox" class="capture-lightbox" aria-label="Foto ampliada de la ofrenda">
+  <button id="captureLightboxClose" class="capture-lightbox__close" type="button" aria-label="Cerrar foto ampliada">×</button>
+  <img id="captureLightboxImage" alt="Captura ampliada de la ofrenda">
+  <a id="captureLightboxDownload" class="wizard-primary" download>Descargar foto</a>
+</dialog>
+
+<aside id="developerTools" class="developer-tools" hidden aria-label="Herramientas de desarrollo">
+  <button id="developerToolsToggle" class="developer-tools__toggle" type="button" aria-expanded="false" aria-controls="developerToolsPanel">
+    <span aria-hidden="true">⚙</span> Herramientas dev
+  </button>
+  <section id="developerToolsPanel" class="developer-tools__panel" hidden aria-label="Configuración de escena 3D">
+    <header class="developer-tools__header">
+      <div><h2>Escena 3D</h2><p>Ajustes e información de los modelos</p></div>
+      <button id="developerToolsClose" type="button" aria-label="Cerrar herramientas">×</button>
+    </header>
+    <div class="developer-tools__model-row">
+      <div id="modelVariantControls" class="altar-model-switch" role="group" aria-label="Elegir modelo del altar" hidden>
+        <button id="texturedModelButton" type="button" aria-pressed="true">Texturizado</button>
+        <button id="detailedModelButton" type="button" aria-pressed="false">STL detallado</button>
+      </div>
+      <span id="modelDimensions" class="model-dimensions" hidden aria-live="polite"></span>
+    </div>
+    <div class="model-info" aria-label="Información técnica de los modelos">
+      <article><h3>Texturizado</h3><p>Escritorio: OBJ + PNG · 10.7 MiB</p><p>Android: OBJ + WebP 2048 px · 6.2 MiB</p><p>Malla compartida: 20,000 triángulos</p></article>
+      <article><h3>Detallado</h3><p>Formato: STL binario</p><p>Vértices: 6,281,676 · Triángulos: 2,093,892</p><p>Archivo: 99.8 MB</p></article>
+      <p class="model-info__total">Modelo texturizado + alternativa STL dev: 110.6 MiB escritorio · 106.2 MiB Android</p>
+    </div>
+    <section id="photoCalibrationControls" class="photo-calibration" aria-label="Ajuste de fotos en los marcos" hidden>
+      <div class="photo-calibration__heading">
+        <div><h3>Ajuste de fotos</h3><p>Elige un marco y edita su posición y tamaño.</p></div>
+        <button id="resetPhotoCalibration" class="photo-calibration__secondary" type="button">Restablecer</button>
+      </div>
+      <div class="photo-calibration__fields">
+        <label>Marco<select id="calibrationFrame"><option value="left">Izquierdo</option><option value="center">Centro</option><option value="right">Derecho</option></select></label>
+        <label>X<input data-calibration="x" type="number" step="0.002"></label>
+        <label>Y · altura<input data-calibration="y" type="number" step="0.002"></label>
+        <label>Z · profundidad<input data-calibration="z" type="number" step="0.002"></label>
+        <label>Ancho<input data-calibration="width" type="number" min="0.005" step="0.002"></label>
+        <label>Alto<input data-calibration="height" type="number" min="0.005" step="0.002"></label>
+      </div>
+      <label class="photo-calibration__output-label" for="photoCalibrationOutput">Coordenadas y tamaños actuales</label>
+      <textarea id="photoCalibrationOutput" readonly spellcheck="false"></textarea>
+      <div class="photo-calibration__actions"><button id="copyPhotoCalibration" type="button">Copiar coordenadas</button><span id="photoCalibrationStatus" role="status" aria-live="polite"></span></div>
+    </section>
+  </section>
+</aside>
 
 <script type="module" src="./src/main.js"></script>
 

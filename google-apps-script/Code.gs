@@ -18,6 +18,7 @@ function doPost(event) {
   const payload = readRequestPayload(event);
   const name = String(payload.name || '').trim();
   const email = String(payload.email || '').trim();
+  const dedication = String(payload.dedication || '').trim().slice(0, 180);
   let status = String(payload.status || 'NO_ENVIADO').trim().slice(0, 50);
   let message = String(payload.message || '').trim().slice(0, 2000);
 
@@ -28,7 +29,7 @@ function doPost(event) {
   const captures = Array.isArray(payload.captures) ? payload.captures : [];
   if (captures.length) {
     try {
-      sendPhotoSessionWithMailApp(name, email, captures);
+      sendPhotoSessionWithMailApp(name, email, dedication, captures);
       status = 'ENVIADO';
       message = 'MailApp envió el correo desde la cuenta propietaria del Apps Script.';
     } catch (error) {
@@ -38,7 +39,7 @@ function doPost(event) {
   }
 
   try {
-    appendParticipant(name, email, status, message);
+    appendParticipant(name, email, status, message, dedication);
     return jsonResponse({ ok: true, status: status, message: message });
   } catch (error) {
     console.error('No se pudo escribir la fila en Sheets:', error);
@@ -58,7 +59,7 @@ function readRequestPayload(event) {
   return event && event.parameter ? event.parameter : {};
 }
 
-function sendPhotoSessionWithMailApp(name, email, captures) {
+function sendPhotoSessionWithMailApp(name, email, dedication, captures) {
   if (captures.length !== EMAIL_VIEWS.length) {
     throw new Error('Se requieren exactamente cinco capturas para el correo.');
   }
@@ -107,7 +108,7 @@ function sendPhotoSessionWithMailApp(name, email, captures) {
   MailApp.sendEmail(email, 'Tu sesión de fotos de la ofrenda',
     'Preparamos cinco vistas de tu ofrenda. Abre este mensaje en un cliente que admita HTML para verlas.', {
       name: 'Memoria Viva',
-      htmlBody: buildPhotoSessionEmailHtml(name, email, captureById),
+      htmlBody: buildPhotoSessionEmailHtml(name, email, captureById, dedication),
       inlineImages: inlineImages
     }
   );
@@ -123,7 +124,7 @@ function enforceRecipientRateLimit(email) {
   cache.put(key, '1', 60);
 }
 
-function buildPhotoSessionEmailHtml(name, email, captures) {
+function buildPhotoSessionEmailHtml(name, email, captures, dedication) {
   const gallery = EMAIL_VIEWS.map(view => {
     const capture = captures[view.id];
     return '<tr><td style="padding:8px 0 16px;">' +
@@ -138,7 +139,8 @@ function buildPhotoSessionEmailHtml(name, email, captures) {
     '<tr><td style="padding:30px 28px 12px;text-align:center;color:#f4bd57;font-size:13px;letter-spacing:3px;text-transform:uppercase;">Día de Muertos</td></tr>' +
     '<tr><td style="padding:0 28px 18px;text-align:center;"><h1 style="margin:0;font-family:Georgia,serif;font-size:30px;font-weight:normal;color:#fff7e8;">Tu ofrenda de recuerdos</h1></td></tr>' +
     '<tr><td style="padding:0 28px 20px;color:#f4e6d2;font-size:15px;line-height:1.65;">' +
-    '<p>Hola ' + escapeHtml(name) + ',</p><p>Preparamos cinco vistas de tu ofrenda para que puedas conservarlas. Las imágenes están incluidas en este correo.</p></td></tr>' +
+    '<p>Hola ' + escapeHtml(name) + ',</p><p>Preparamos cinco vistas de tu ofrenda para que puedas conservarlas. Las imágenes están incluidas en este correo.</p>' +
+    (dedication ? '<p style="margin:18px 0;padding:14px 16px;border-left:3px solid #f4bd57;color:#f4d89d;font-family:Georgia,serif;font-style:italic;">“' + escapeHtml(dedication) + '”</p>' : '') + '</td></tr>' +
     '<tr><td style="padding:0 28px 20px;"><table role="presentation" width="100%" cellspacing="0" cellpadding="0">' + gallery + '</table></td></tr>' +
     '<tr><td style="padding:18px 28px 28px;border-top:1px solid #56394e;color:#bba9b6;font-size:12px;line-height:1.6;">Este mensaje fue enviado a ' + escapeHtml(email) + ' porque se utilizó este correo al crear la ofrenda.</td></tr>' +
     '</table></body></html>';
@@ -150,7 +152,7 @@ function escapeHtml(value) {
   })[character]);
 }
 
-function appendParticipant(name, email, status, message) {
+function appendParticipant(name, email, status, message, dedication) {
   const spreadsheet = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = spreadsheet.getSheetByName(SHEET_NAME);
   if (!sheet) throw new Error('No existe la pestaña configurada: ' + SHEET_NAME);
@@ -159,21 +161,21 @@ function appendParticipant(name, email, status, message) {
   lock.waitLock(10000);
   try {
     ensureHeaders(sheet);
-    sheet.appendRow([new Date(), name, email, status, String(message).slice(0, 2000)]);
+    sheet.appendRow([new Date(), name, email, status, String(message).slice(0, 2000), String(dedication || '').slice(0, 180)]);
   } finally {
     lock.releaseLock();
   }
 }
 
 function ensureHeaders(sheet) {
-  const headers = ['Fecha', 'Nombre', 'Correo', 'Status', 'Message'];
+  const headers = ['Fecha', 'Nombre', 'Correo', 'Status', 'Message', 'Dedicatoria'];
   const lastRow = sheet.getLastRow();
   if (lastRow === 0) {
     sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
     return;
   }
 
-  const firstRow = sheet.getRange(1, 1, 1, 5).getDisplayValues()[0]
+  const firstRow = sheet.getRange(1, 1, 1, Math.max(5, sheet.getLastColumn())).getDisplayValues()[0]
     .map(value => String(value).trim().toLowerCase());
   const looksLikeHeader =
     /fecha|date|timestamp/.test(firstRow[0]) &&

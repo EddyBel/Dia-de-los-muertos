@@ -48,7 +48,10 @@
         <div class="model-backdrop" aria-hidden="true"></div>
         <canvas id="altar" aria-label="Modelo 3D de la ofrenda"></canvas>
         <p id="dedicationOverlay" class="dedication-overlay" aria-live="polite"></p>
-        <button id="altarFullscreen" class="altar-fullscreen-button" type="button" aria-label="Ver la ofrenda en pantalla completa" title="Pantalla completa"><span aria-hidden="true">⛶</span><span class="altar-fullscreen-button__label">Pantalla completa</span></button>
+        <div class="altar-scene-controls">
+          <button id="generationClose" class="generation-return-button" type="button" hidden>Volver al inicio</button>
+          <button id="altarFullscreen" class="altar-fullscreen-button" type="button" aria-label="Ver la ofrenda en pantalla completa" title="Pantalla completa"><span aria-hidden="true">⛶</span><span class="altar-fullscreen-button__label">Pantalla completa</span></button>
+        </div>
       </div>
     </div>
     <div id="heroCopy" class="hero-copy relative z-10">
@@ -184,7 +187,6 @@
   <section id="generationStage" class="generation-stage" hidden aria-label="Generando tu ofrenda">
     <div class="generation-stage__top">
       <div><p class="generation-stage__eyebrow">MEMORIA VIVA</p><h2>Preparando tu ofrenda</h2></div>
-      <button id="generationClose" type="button" hidden>Volver</button>
     </div>
     <div id="generationViewportSlot" class="generation-viewport-slot"></div>
     <div id="generationLoader" class="generation-loader" role="status" aria-live="polite">
@@ -226,9 +228,9 @@
 </main>
 
 <dialog id="captureLightbox" class="capture-lightbox" aria-label="Foto ampliada de la ofrenda">
-  <button id="captureLightboxClose" class="capture-lightbox__close" type="button" aria-label="Cerrar foto ampliada">×</button>
+  <button id="captureLightboxClose" class="capture-lightbox__close" type="button" aria-label="Volver a la galería" title="Volver a la galería"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6M9 12h11"/></svg></button>
   <img id="captureLightboxImage" alt="Captura ampliada de la ofrenda">
-  <a id="captureLightboxDownload" class="wizard-primary" download>Descargar foto</a>
+  <a id="captureLightboxDownload" class="capture-lightbox__download" download><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v11m0 0 4-4m-4 4-4-4M5 17v3h14v-3"/></svg><span>Descargar foto</span></a>
 </dialog>
 
 <aside id="developerTools" class="developer-tools" hidden aria-label="Herramientas de desarrollo">
@@ -270,6 +272,15 @@
       <div class="photo-calibration__actions"><button id="copyPhotoCalibration" type="button">Copiar coordenadas</button><span id="photoCalibrationStatus" role="status" aria-live="polite"></span></div>
     </section>
   </section>
+</aside>
+
+<aside class="ambient-audio" aria-label="Música ambiental">
+  <button id="ambientAudioToggle" class="ambient-audio__toggle" type="button" aria-pressed="false" aria-label="Activar música ambiental">
+    <span class="ambient-audio__icon" aria-hidden="true">♫</span>
+    <span id="ambientAudioTitle" class="ambient-audio__title">Activar música ambiental</span>
+    <span id="ambientAudioAction" class="ambient-audio__action" aria-hidden="true">▶</span>
+  </button>
+  <div id="ambientYoutubePlayer" class="ambient-audio__player" aria-hidden="true"></div>
 </aside>
 
 <script type="module" src="./src/main.js"></script>

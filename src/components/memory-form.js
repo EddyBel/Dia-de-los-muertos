@@ -2,7 +2,7 @@ import { closeImages, decodeImage, validatePhotoFiles } from '../services/image-
 import { isSubmissionServiceConfigured, submitOfrenda } from '../services/submission-service.js';
 import { downloadPhotoSession } from '../services/photo-session-download.js';
 
-export function setupMemoryForm({ loadAltar, mountGenerationScene, mountHeroScene }) {
+export function setupMemoryForm({ loadAltar, mountGenerationScene }) {
   const form = document.querySelector('#memoryForm');
   const submitButton = document.querySelector('#submitBtn');
   const status = document.querySelector('#status');
@@ -62,6 +62,8 @@ export function setupMemoryForm({ loadAltar, mountGenerationScene, mountHeroScen
     captureLightboxImage.alt = image.alt;
     captureLightboxDownload.href = url;
     captureLightboxDownload.download = card.dataset.filename || 'ofrenda.jpg';
+    document.documentElement.classList.add('is-lightbox-open');
+    document.body.classList.add('is-lightbox-open');
     if (captureLightbox.showModal) captureLightbox.showModal();
     else captureLightbox.setAttribute('open', '');
   }
@@ -93,6 +95,8 @@ export function setupMemoryForm({ loadAltar, mountGenerationScene, mountHeroScen
     if (event.target === captureLightbox) captureLightbox.close();
   });
   captureLightbox.addEventListener('close', () => {
+    document.documentElement.classList.remove('is-lightbox-open');
+    document.body.classList.remove('is-lightbox-open');
     captureLightboxImage.removeAttribute('src');
     captureLightboxDownload.removeAttribute('href');
   });
@@ -249,9 +253,10 @@ export function setupMemoryForm({ loadAltar, mountGenerationScene, mountHeroScen
 
   generationClose.addEventListener('click', () => {
     generationStage.hidden = true;
-    mountHeroScene?.();
+    generationStage.classList.remove('is-complete');
     document.body.classList.remove('is-generating');
-    document.querySelector('#crear').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    document.body.classList.remove('is-results-view');
+    document.querySelector('#backToHome')?.click();
   });
 
   form.addEventListener('submit', async event => {
@@ -279,6 +284,8 @@ export function setupMemoryForm({ loadAltar, mountGenerationScene, mountHeroScen
     submitButton.disabled = true;
     submitButton.textContent = 'Generando…';
     photoSession = null;
+    generationStage.classList.remove('is-complete');
+    document.body.classList.remove('is-results-view');
     resetCaptureCards();
     downloadButton.hidden = true;
     photoSessionStatus.hidden = true;
@@ -309,6 +316,8 @@ export function setupMemoryForm({ loadAltar, mountGenerationScene, mountHeroScen
           setGenerationProgress(52 + event.completion * 36, `Vista ${event.index + 1} de ${event.total} lista.`);
         }
       });
+      generationStage.classList.add('is-complete');
+      document.body.classList.add('is-results-view');
       downloadButton.hidden = false;
       photoSessionStatus.hidden = false;
       photoSessionStatus.textContent = 'Las cinco vistas están listas; preparando el envío al correo…';
@@ -339,7 +348,7 @@ export function setupMemoryForm({ loadAltar, mountGenerationScene, mountHeroScen
     } finally {
       generationLoader.hidden = true;
       generationClose.hidden = false;
-      generationClose.textContent = 'Volver al formulario';
+      generationClose.textContent = 'Volver al inicio';
       submitButton.disabled = false;
       submitButton.textContent = 'Empezar generación ✨';
     }

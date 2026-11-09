@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { STLLoader } from 'three/addons/loaders/STLLoader.js';
 import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { ALTAR_PHOTO_FRAMES, ALTAR_STL_BOUNDS } from './altar-feature-map.js';
 
 const MODEL_URL = new URL(
@@ -26,6 +27,14 @@ const MOBILE_MODEL_BACKDROP_URL = new URL(
   '../../public/backgrounds/escena-modelo-mobile.webp',
   import.meta.url
 ).href;
+const HERO_FLOWERS_DESKTOP_URL = new URL('../../public/models/cempasuchil-floor-200.glb', import.meta.url).href;
+const HERO_FLOWERS_MOBILE_URL = new URL('../../public/models/cempasuchil-floor-200-mobile.glb', import.meta.url).href;
+const MAX_FLOWER_COUNT = 200;
+const FINAL_ALTAR_FLOWER_COUNT = 100;
+const FLOWER_SPROUT_DURATION = 620;
+const FLOWER_SPROUT_STAGGER = 14;
+const FLOWER_SPARKS_PER_BURST = 3;
+const PETAL_COLORS = [0xff8c00, 0xffad01, 0xffa500, 0xffd700];
 const DESKTOP_PHOTO_SESSION_SIZE = 1600;
 const MOBILE_ALTAR_SCALE = .72;
 const MAX_SCENE_ROTATION = THREE.MathUtils.degToRad(38);
@@ -143,6 +152,98 @@ export function createAltar(canvas) {
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.setClearColor(0x000000, 0);
 
+  function createMarigoldPetalRain() {
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const petalCount = reducedMotion ? 0 : (lowMemoryProfile ? 18 : (mobileProfile ? 34 : 120));
+    const geometry = new THREE.BufferGeometry();
+    const positions = new Float32Array(petalCount * 3);
+    const speeds = new Float32Array(petalCount);
+    const phases = new Float32Array(petalCount);
+    const sizes = new Float32Array(petalCount);
+    const rotations = new Float32Array(petalCount);
+    const colors = new Float32Array(petalCount * 3);
+    const color = new THREE.Color();
+
+    for (let index = 0; index < petalCount; index += 1) {
+      positions[index * 3] = (Math.random() - .5) * 9;
+      positions[index * 3 + 1] = 0;
+      positions[index * 3 + 2] = (Math.random() - .5) * 8;
+      speeds[index] = .08 + Math.random() * .09;
+      phases[index] = Math.random();
+      sizes[index] = .1 + Math.random() * .08;
+      rotations[index] = Math.random() * Math.PI;
+      color.setHex(PETAL_COLORS[Math.floor(Math.random() * PETAL_COLORS.length)]);
+      color.toArray(colors, index * 3);
+    }
+
+    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    geometry.setAttribute('aSpeed', new THREE.BufferAttribute(speeds, 1));
+    geometry.setAttribute('aPhase', new THREE.BufferAttribute(phases, 1));
+    geometry.setAttribute('aSize', new THREE.BufferAttribute(sizes, 1));
+    geometry.setAttribute('aRotation', new THREE.BufferAttribute(rotations, 1));
+    geometry.setAttribute('aColor', new THREE.BufferAttribute(colors, 3));
+
+    const uniforms = { uTime: { value: 0 } };
+    const material = new THREE.ShaderMaterial({
+      uniforms,
+      transparent: true,
+      depthTest: true,
+      depthWrite: false,
+      vertexShader: `
+        attribute float aSpeed;
+        attribute float aPhase;
+        attribute float aSize;
+        attribute float aRotation;
+        attribute vec3 aColor;
+        uniform float uTime;
+        varying vec3 vColor;
+        varying float vRotation;
+        varying float vFade;
+        void main() {
+          float fall = mod(aPhase + uTime * aSpeed, 1.0);
+          vec3 point = position;
+          point.y = 7.2 - fall * 9.0;
+          point.x += sin(uTime * .85 + aPhase * 19.0) * .35;
+          point.z += cos(uTime * .62 + aPhase * 13.0) * .24;
+          vec4 viewPosition = modelViewMatrix * vec4(point, 1.0);
+          gl_Position = projectionMatrix * viewPosition;
+          gl_PointSize = clamp(aSize * (300.0 / max(1.0, -viewPosition.z)), 2.0, 9.0);
+          vColor = aColor;
+          vRotation = aRotation + sin(uTime * 1.4 + aPhase * 20.0) * .8;
+          vFade = smoothstep(0.0, .08, fall) * (1.0 - smoothstep(.91, 1.0, fall));
+        }
+      `,
+      fragmentShader: `
+        varying vec3 vColor;
+        varying float vRotation;
+        varying float vFade;
+        void main() {
+          vec2 leaf = gl_PointCoord - vec2(.5);
+          float sine = sin(vRotation);
+          float cosine = cos(vRotation);
+          leaf = mat2(cosine, -sine, sine, cosine) * leaf;
+          float halfWidth = mix(.025, .25, 1.0 - abs(leaf.y) * 2.0);
+          float edge = 1.0 - smoothstep(halfWidth - .035, halfWidth, abs(leaf.x));
+          float tip = 1.0 - smoothstep(.47, .5, abs(leaf.y));
+          float alpha = edge * tip * vFade;
+          if (alpha < .04) discard;
+          float vein = 1.0 - smoothstep(.008, .025, abs(leaf.x));
+          vec3 petalColor = mix(vColor * .72, min(vColor * 1.18, vec3(1.0)), vein * .32);
+          gl_FragColor = vec4(petalColor, alpha * .88);
+          #include <tonemapping_fragment>
+          #include <colorspace_fragment>
+        }
+      `
+    });
+    const particles = new THREE.Points(geometry, material);
+    particles.frustumCulled = false;
+    particles.renderOrder = 3;
+    return { particles, uniforms, enabled: petalCount > 0 };
+  }
+
+  const petalRain = createMarigoldPetalRain();
+  scene.add(petalRain.particles);
+
   stage.add(new THREE.HemisphereLight(0xffd59b, 0x100a14, .3));
   const keyLight = new THREE.DirectionalLight(0xffc27b, 1.8);
   keyLight.position.set(-4.5, 7.5, 3.5);
@@ -180,6 +281,13 @@ export function createAltar(canvas) {
   const altar = new THREE.Group();
   altar.scale.setScalar(altarScale);
   stage.add(altar);
+  let heroFlowers = null;
+  let heroFlowersPromise = null;
+  let flowerSprouts = new Map();
+  let flowerSparkInstances = null;
+  const flowerSparkTransform = new THREE.Object3D();
+  let heroMode = true;
+  let heroFlowerCount = 0;
 
   const floorMaterial = new THREE.MeshStandardMaterial({
     color: '#a94b2c',
@@ -367,7 +475,196 @@ export function createAltar(canvas) {
   }
 
   function render() {
+    petalRain.uniforms.uTime.value = performance.now() / 1000;
     renderer.render(scene, camera);
+  }
+
+  function loadHeroFlowers() {
+    if (!heroFlowersPromise) {
+      heroFlowersPromise = new Promise((resolve, reject) => {
+        const flowersUrl = mobileProfile ? HERO_FLOWERS_MOBILE_URL : HERO_FLOWERS_DESKTOP_URL;
+        new GLTFLoader().load(flowersUrl, gltf => {
+          heroFlowers = gltf.scene;
+          const sparkPrototype = heroFlowers.getObjectByName('flower-spark-prototype');
+          if (sparkPrototype?.isMesh) {
+            flowerSparkInstances = new THREE.InstancedMesh(
+              sparkPrototype.geometry,
+              sparkPrototype.material,
+              MAX_FLOWER_COUNT * FLOWER_SPARKS_PER_BURST
+            );
+            flowerSparkInstances.name = 'flower-spark-instances';
+            flowerSparkInstances.count = 0;
+            flowerSparkInstances.frustumCulled = false;
+            flowerSparkInstances.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+            sparkPrototype.removeFromParent();
+            heroFlowers.add(flowerSparkInstances);
+          }
+          altar.add(heroFlowers);
+          applyFlowerVisibility();
+          render();
+          resolve(heroFlowers);
+        }, undefined, reject);
+      }).catch(error => {
+        heroFlowersPromise = null;
+        throw error;
+      });
+    }
+    return heroFlowersPromise;
+  }
+
+  function startFlowerSprout(flower, number, order) {
+    const baseY = flower.position.y;
+    flower.userData.flowerBaseY = baseY;
+    flower.userData.flowerShown = true;
+    flower.visible = true;
+    flower.scale.setScalar(0);
+    flower.position.y = baseY - .14;
+    flowerSprouts.set(number, {
+      flower,
+      baseY,
+      startAt: performance.now() + order * FLOWER_SPROUT_STAGGER
+    });
+  }
+
+  function updateFlowerSprouts(timestamp) {
+    if (!flowerSprouts.size) {
+      if (flowerSparkInstances) {
+        flowerSparkInstances.count = 0;
+        flowerSparkInstances.visible = false;
+      }
+      return false;
+    }
+
+    let sparkIndex = 0;
+    for (const [number, sprout] of flowerSprouts) {
+      const elapsed = timestamp - sprout.startAt;
+      if (elapsed < 0) continue;
+
+      const progress = THREE.MathUtils.clamp(elapsed / FLOWER_SPROUT_DURATION, 0, 1);
+      const inverse = progress - 1;
+      const bounceScale = 1 + 2.70158 * inverse ** 3 + 1.70158 * inverse ** 2;
+      sprout.flower.scale.setScalar(Math.max(0, bounceScale));
+      const rise = THREE.MathUtils.clamp(elapsed / 290, 0, 1);
+      sprout.flower.position.y = sprout.baseY - .14 * (1 - rise);
+
+      const sparkProgress = THREE.MathUtils.clamp((elapsed - 110) / 460, 0, 1);
+      if (elapsed >= 110 && elapsed < 570 && flowerSparkInstances) {
+        const travel = .11 + sparkProgress * .24;
+        const sparkCount = mobileProfile ? 2 : FLOWER_SPARKS_PER_BURST;
+        for (let particle = 0; particle < sparkCount; particle += 1) {
+          const seed = number * 1.618 + particle * (Math.PI * 2 / sparkCount);
+          const angle = seed + sprout.flower.rotation.y;
+          const size = (1 - sparkProgress) * (.78 + .22 * Math.sin(seed * 2));
+          flowerSparkTransform.position.set(
+            sprout.flower.position.x + Math.cos(angle) * travel,
+            sprout.baseY + .10 + sparkProgress * (.23 + .04 * Math.sin(seed)),
+            sprout.flower.position.z + Math.sin(angle) * travel
+          );
+          flowerSparkTransform.rotation.set(
+            seed * .25 + sparkProgress * 4,
+            seed + sparkProgress * 3,
+            seed * .6 - sparkProgress * 5
+          );
+          flowerSparkTransform.scale.setScalar(size);
+          flowerSparkTransform.updateMatrix();
+          flowerSparkInstances.setMatrixAt(sparkIndex, flowerSparkTransform.matrix);
+          sparkIndex += 1;
+        }
+      }
+
+      if (progress >= 1) {
+        sprout.flower.scale.setScalar(1);
+        sprout.flower.position.y = sprout.baseY;
+        flowerSprouts.delete(number);
+      }
+    }
+
+    if (flowerSparkInstances) {
+      flowerSparkInstances.count = sparkIndex;
+      flowerSparkInstances.visible = sparkIndex > 0;
+      if (sparkIndex) flowerSparkInstances.instanceMatrix.needsUpdate = true;
+    }
+    return flowerSprouts.size > 0;
+  }
+
+  function completeFlowerSprouts() {
+    flowerSprouts.forEach(({ flower, baseY }) => {
+      flower.scale.setScalar(1);
+      flower.position.y = baseY;
+    });
+    flowerSprouts.clear();
+    if (flowerSparkInstances) {
+      flowerSparkInstances.count = 0;
+      flowerSparkInstances.visible = false;
+    }
+  }
+
+  function applyFlowerVisibility() {
+    if (!heroFlowers) return;
+    const visibleCount = THREE.MathUtils.clamp(
+      Math.floor(heroMode ? heroFlowerCount : FINAL_ALTAR_FLOWER_COUNT),
+      0,
+      MAX_FLOWER_COUNT
+    );
+    let sproutOrder = 0;
+    heroFlowers.children.forEach(flower => {
+      const match = flower.name.match(/^flower-(\d+)$/);
+      if (!match) return;
+      const number = Number(match[1]);
+      const shouldShow = number > 0 && number <= visibleCount;
+      if (shouldShow && !flower.userData.flowerShown) {
+        startFlowerSprout(flower, number, sproutOrder);
+        sproutOrder += 1;
+      } else if (!shouldShow) {
+        flowerSprouts.delete(number);
+        if (flower.userData.flowerShown) {
+          flower.position.y = flower.userData.flowerBaseY ?? flower.position.y;
+          flower.scale.setScalar(1);
+          flower.userData.flowerShown = false;
+        }
+        flower.visible = false;
+      }
+    });
+    heroFlowers.visible = activeModelKind === 'textured';
+    if (flowerSprouts.size) scheduleAnimation();
+    else if (flowerSparkInstances) {
+      flowerSparkInstances.count = 0;
+      flowerSparkInstances.visible = false;
+    }
+  }
+
+  function setHeroFlowerCount(count) {
+    heroFlowerCount = THREE.MathUtils.clamp(Math.floor(Number(count) || 0), 0, MAX_FLOWER_COUNT);
+    if (!heroMode) return Promise.resolve(heroFlowerCount);
+    return loadHeroFlowers().then(() => {
+      applyFlowerVisibility();
+      render();
+      return heroFlowerCount;
+    });
+  }
+
+  function setHeroMode(enabled) {
+    heroMode = Boolean(enabled);
+    if (heroMode) {
+      const clampToHeroArc = angle => THREE.MathUtils.clamp(
+        Math.atan2(Math.sin(angle), Math.cos(angle)),
+        -MAX_SCENE_ROTATION,
+        MAX_SCENE_ROTATION
+      );
+      stage.rotation.y = clampToHeroArc(stage.rotation.y);
+      targetRotation = clampToHeroArc(targetRotation);
+    }
+    if (activeModelKind !== 'textured') {
+      if (heroFlowers) heroFlowers.visible = false;
+      render();
+      return Promise.resolve(false);
+    }
+    return loadHeroFlowers().then(group => {
+      applyFlowerVisibility();
+      render();
+      scheduleAnimation();
+      return group.visible;
+    });
   }
 
   function clearPhotoCards() {
@@ -672,9 +969,11 @@ export function createAltar(canvas) {
     try {
       await ensureModelLoaded(kind, onProgress);
       await floorTextureReady;
+      if (kind === 'textured') await loadHeroFlowers();
       if (requestId !== modelSelectionRequest) return activeModelKind;
       modelInstances.forEach((instance, name) => { instance.visible = name === kind; });
       activeModelKind = kind;
+      applyFlowerVisibility();
       window.dispatchEvent(new CustomEvent('altar:modelchange', {
         detail: { kind, dimensions: getModelDimensions(kind) }
       }));
@@ -701,35 +1000,35 @@ export function createAltar(canvas) {
       : { width: size.x * scale * altarScale, height: size.y * scale * altarScale, depth: size.z * scale * altarScale };
   }
 
-  if (mobileProfile) {
-    canvas.addEventListener('pointerdown', event => {
-      if (event.pointerType === 'mouse') return;
-      dragging = true;
-      lastX = event.clientX;
-      canvas.setPointerCapture(event.pointerId);
-      scheduleAnimation();
-    });
-    canvas.addEventListener('pointermove', event => {
-      if (!dragging) return;
-      const movement = event.clientX - lastX;
-      lastX = event.clientX;
-      targetRotation = THREE.MathUtils.clamp(
-        targetRotation + movement * .008,
-        -MAX_SCENE_ROTATION,
-        MAX_SCENE_ROTATION
-      );
-      scheduleAnimation();
-    });
-    canvas.addEventListener('pointerup', () => { dragging = false; });
-    canvas.addEventListener('pointercancel', () => { dragging = false; });
-  } else {
-    window.addEventListener('pointermove', event => {
-      if (event.pointerType !== 'mouse' || capturingPhotoSession) return;
+  canvas.addEventListener('pointerdown', event => {
+    if (capturingPhotoSession || (event.pointerType === 'mouse' && heroMode)) return;
+    dragging = true;
+    lastX = event.clientX;
+    canvas.setPointerCapture(event.pointerId);
+    scheduleAnimation();
+  });
+  canvas.addEventListener('pointermove', event => {
+    if (!dragging || capturingPhotoSession) return;
+    const movement = event.clientX - lastX;
+    lastX = event.clientX;
+    const nextRotation = targetRotation + movement * .008;
+    targetRotation = heroMode
+      ? THREE.MathUtils.clamp(nextRotation, -MAX_SCENE_ROTATION, MAX_SCENE_ROTATION)
+      : nextRotation;
+    scheduleAnimation();
+  });
+  const stopDragging = () => { dragging = false; };
+  canvas.addEventListener('pointerup', stopDragging);
+  canvas.addEventListener('pointercancel', stopDragging);
+  canvas.addEventListener('lostpointercapture', stopDragging);
+
+  window.addEventListener('pointermove', event => {
+    if (heroMode && !mobileProfile && event.pointerType === 'mouse' && !capturingPhotoSession) {
       const horizontalProgress = THREE.MathUtils.clamp(event.clientX / window.innerWidth, 0, 1);
       targetRotation = (horizontalProgress * 2 - 1) * MAX_SCENE_ROTATION;
       scheduleAnimation();
-    });
-  }
+    }
+  });
 
   function resize() {
     const width = canvas.clientWidth;
@@ -781,7 +1080,13 @@ export function createAltar(canvas) {
   function animate(timestamp) {
     animationFrameId = null;
     if (!canRender()) return;
-    const mobileFrameInterval = mobileProfile ? 1000 / 24 : 0;
+    const viewIsMoving = dragging
+      || flowerSprouts.size > 0
+      || Math.abs(stage.rotation.y - targetRotation) > .001
+      || selectedImages.length > photoFrames.length;
+    const mobileFrameInterval = mobileProfile
+      ? 1000 / (petalRain.enabled && !viewIsMoving ? 12 : 24)
+      : 0;
     if (mobileProfile && timestamp - lastRenderedAt < mobileFrameInterval) {
       scheduleAnimation();
       return;
@@ -805,12 +1110,15 @@ export function createAltar(canvas) {
         if (step !== activeCarouselStep) applyCarouselStep(step);
       }
     }
+    const flowerAnimationActive = !capturingPhotoSession && updateFlowerSprouts(timestamp);
     render();
     const modelReady = modelInstances.has(activeModelKind);
     const isTurning = Math.abs(stage.rotation.y - targetRotation) > .001;
     const shouldKeepAnimating = !capturingPhotoSession && (
       isTurning ||
       dragging ||
+      flowerAnimationActive ||
+      petalRain.enabled ||
       (!mobileProfile && !developerMode && modelReady) ||
       (modelReady && selectedImages.length > photoFrames.length)
     );
@@ -819,6 +1127,11 @@ export function createAltar(canvas) {
 
   async function capturePhotoSession(onProgress) {
     await ensureModelLoaded(activeModelKind);
+    if (activeModelKind === 'textured') {
+      await loadHeroFlowers();
+      applyFlowerVisibility();
+      completeFlowerSprouts();
+    }
 
     const backdrop = await loadModelBackdrop(mobileProfile ? MOBILE_MODEL_BACKDROP_URL : MODEL_BACKDROP_URL);
     const target = new THREE.Vector3(0, cameraTargetHeight, 0);
@@ -830,6 +1143,7 @@ export function createAltar(canvas) {
     const originalRotation = stage.rotation.y;
     const originalTargetRotation = targetRotation;
     const originalCarouselStep = activeCarouselStep;
+    const originalHeroFlowersVisibility = heroFlowers?.visible ?? false;
     const radius = camera.position.distanceTo(target);
     const output = document.createElement('canvas');
     output.width = photoSessionSize;
@@ -907,6 +1221,10 @@ export function createAltar(canvas) {
       stage.rotation.y = originalRotation;
       targetRotation = originalTargetRotation;
       capturingPhotoSession = false;
+      if (heroFlowers) {
+        heroFlowers.visible = originalHeroFlowersVisibility || activeModelKind === 'textured';
+        applyFlowerVisibility();
+      }
       if (selectedImages.length > photoFrames.length) applyCarouselStep(originalCarouselStep);
       render();
       scheduleAnimation();
@@ -917,6 +1235,8 @@ export function createAltar(canvas) {
     setImages,
     setDedication,
     setModelVariant,
+    setHeroMode,
+    setHeroFlowerCount,
     getModelVariant: () => activeModelKind,
     getModelDimensions,
     getPhotoCalibration,

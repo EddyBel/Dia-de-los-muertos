@@ -124,10 +124,11 @@ El workflow prepara `index.html`, `src/` y `public/` como sitio estático y los 
 ## Datos y servicios
 
 - **Google Sheets / Apps Script** — Guarda los registros y su estado, devuelve solo el conteo público de participaciones y envía la sesión de fotos mediante `MailApp`.
+- **Metadatos y eventos** — `RESPUESTAS` conserva la dedicatoria y los metadatos técnicos de la sesión; `EVENTOS` registra visitas, pasos del wizard, cambios en las fotos, resultado del envío, abandonos y duración aproximada.
 - **LRCLIB** — Cuando empieza una canción, Apps Script busca primero en la pestaña `CANCIONES`; si no encuentra una consulta previa válida, solicita las letras a LRCLIB y guarda tanto las marcas de tiempo como el texto plano. Las letras no se muestran en la web.
 - **YouTube** — Proporciona la reproducción ambiental y los metadatos de la playlist.
 
-Las fotografías originales se procesan en el navegador; las capturas generadas se envían al backend para el correo y permanecen disponibles en la sesión para su descarga. El sitio no incluye una base de datos propia ni almacenamiento permanente de las fotografías.
+Las fotografías originales se procesan en el navegador; las capturas generadas se envían al backend para el correo y permanecen disponibles en la sesión para su descarga. Los eventos técnicos se mantienen en memoria hasta que la persona acepta el consentimiento antes de subir fotos; si no acepta, no se envían a la hoja. El sitio no incluye una base de datos propia ni almacenamiento permanente de las fotografías.
 
 ## Créditos y licencias
 

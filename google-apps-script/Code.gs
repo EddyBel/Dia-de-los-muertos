@@ -1,5 +1,6 @@
 const SPREADSHEET_ID = "1LwZET_i9KXWiDlr6JxhBDfXIXYUcd2hzwW_vQl1lpIQ";
 const SHEET_NAME = "RESPUESTAS";
+const EVENTS_SHEET_NAME = "EVENTOS";
 const LYRICS_SHEET_NAME = "CANCIONES";
 const LYRICS_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const MAX_LYRICS_CELL_CHARS = 45000;
@@ -14,6 +15,28 @@ const LYRICS_HEADERS = [
   "Artista consultado (clave)",
 ];
 const MAX_EMAIL_ATTACHMENT_BYTES = 20 * 1024 * 1024;
+const PARTICIPANT_HEADERS = [
+  "Fecha", "Nombre", "Correo", "Status", "Message", "Dedicatoria",
+  "Session ID", "Duración sesión (ms)", "Zona horaria", "Idioma",
+  "Idiomas preferidos", "Sistema operativo aproximado", "Navegador",
+  "User-Agent", "User-Agent Client Hints", "Resolución de pantalla",
+  "Tamaño del viewport", "Tipo de conexión", "Estado de conexión",
+  "Referencia de llegada", "URL de origen",
+];
+const EVENT_HEADERS = [
+  "Fecha y hora servidor", "Fecha y hora local", "Session ID", "Evento",
+  "Paso", "Cantidad de fotos", "Bytes de fotos", "Duración sesión (ms)",
+  "Zona horaria", "Idioma", "Idiomas preferidos",
+  "Sistema operativo aproximado", "Navegador", "User-Agent",
+  "User-Agent Client Hints", "Resolución de pantalla", "Tamaño del viewport",
+  "Tipo de conexión", "Estado de conexión", "Referencia de llegada",
+  "URL de origen", "Mensaje",
+];
+const EVENT_NAMES = new Set([
+  "page_view", "form_started", "step_completed", "photo_added",
+  "photo_removed", "form_abandoned", "submission_success",
+  "submission_error", "session_duration",
+]);
 const EMAIL_VIEWS = [
   { id: "frontal", label: "Vista frontal" },
   { id: "tres-cuartos-derecha", label: "Tres cuartos derecha" },
@@ -448,6 +471,7 @@ function jsonpResponse(value, callback) {
 
 function doPost(event) {
   const payload = readRequestPayload(event);
+  if (payload.action === "event") return appendUsageEvent_(payload);
   const name = String(payload.name || "").trim();
   const email = String(payload.email || "").trim();
   const dedication = String(payload.dedication || "")
@@ -487,7 +511,10 @@ function doPost(event) {
   }
 
   try {
-    appendParticipant(name, email, status, message, dedication);
+    appendParticipant(
+      name, email, status, message, dedication,
+      payload.sessionId, payload.sessionDurationMs, payload.metadata,
+    );
     return jsonResponse({ ok: true, status: status, message: message });
   } catch (error) {
     console.error("No se pudo escribir la fila en Sheets:", error);
@@ -651,7 +678,69 @@ function escapeHtml(value) {
   );
 }
 
-function appendParticipant(name, email, status, message, dedication) {
+function appendUsageEvent_(payload) {
+  const eventName = String(payload.eventName || "");
+  if (!EVENT_NAMES.has(eventName)) return jsonResponse({ ok: false, error: "Evento no válido" });
+
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(10000);
+    const spreadsheet = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = spreadsheet.getSheetByName(EVENTS_SHEET_NAME);
+    if (!sheet) sheet = spreadsheet.insertSheet(EVENTS_SHEET_NAME);
+    const metadata = normalizeTelemetryMetadata_(payload.metadata);
+    const clientDate = new Date(String(payload.clientTimestamp || ""));
+    const dateValue = Number.isNaN(clientDate.getTime()) ? "" : clientDate;
+    ensureEventHeaders_(sheet);
+    sheet.appendRow([
+      new Date(), dateValue, String(payload.sessionId || "").slice(0, 80), eventName,
+      safeInteger_(payload.step), safeInteger_(payload.photoCount),
+      safeInteger_(payload.photoBytes), safeInteger_(payload.sessionDurationMs),
+      metadata.timezone, metadata.language, metadata.preferredLanguages,
+      metadata.operatingSystem, metadata.browser, metadata.userAgent,
+      metadata.userAgentClientHints, metadata.screenResolution, metadata.viewport,
+      metadata.connection, String(metadata.online), metadata.referrer,
+      metadata.sourceUrl, String(payload.message || "").slice(0, 500),
+    ]);
+    return jsonResponse({ ok: true });
+  } catch (error) {
+    console.error("No se pudo guardar el evento:", error);
+    return jsonResponse({ ok: false, error: "No se pudo guardar el evento" });
+  } finally {
+    if (lock.hasLock()) lock.releaseLock();
+  }
+}
+
+function normalizeTelemetryMetadata_(metadata) {
+  const source = metadata && typeof metadata === "object" ? metadata : {};
+  const field = (key, maxLength) => String(source[key] == null ? "" : source[key]).slice(0, maxLength);
+  return {
+    timezone: field("timezone", 120),
+    language: field("language", 80),
+    preferredLanguages: field("preferredLanguages", 500),
+    operatingSystem: field("operatingSystem", 120),
+    browser: field("browser", 120),
+    userAgent: field("userAgent", 1000),
+    userAgentClientHints: field("userAgentClientHints", 1000),
+    screenResolution: field("screenResolution", 40),
+    viewport: field("viewport", 40),
+    connection: field("connection", 500),
+    online: typeof source.online === "boolean" ? source.online : "",
+    referrer: field("referrer", 1000),
+    sourceUrl: field("sourceUrl", 1500),
+  };
+}
+
+function safeInteger_(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? Math.max(0, Math.min(Math.floor(number), 2147483647)) : "";
+}
+
+function ensureEventHeaders_(sheet) {
+  sheet.getRange(1, 1, 1, EVENT_HEADERS.length).setValues([EVENT_HEADERS]);
+}
+
+function appendParticipant(name, email, status, message, dedication, sessionId, sessionDurationMs, rawMetadata) {
   const spreadsheet = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = spreadsheet.getSheetByName(SHEET_NAME);
   if (!sheet)
@@ -661,13 +750,15 @@ function appendParticipant(name, email, status, message, dedication) {
   lock.waitLock(10000);
   try {
     ensureHeaders(sheet);
+    const metadata = normalizeTelemetryMetadata_(rawMetadata);
     sheet.appendRow([
-      new Date(),
-      name,
-      email,
-      status,
-      String(message).slice(0, 2000),
-      String(dedication || "").slice(0, 180),
+      new Date(), name, email, status, String(message).slice(0, 2000),
+      String(dedication || "").slice(0, 180), String(sessionId || "").slice(0, 80),
+      safeInteger_(sessionDurationMs), metadata.timezone, metadata.language,
+      metadata.preferredLanguages, metadata.operatingSystem, metadata.browser,
+      metadata.userAgent, metadata.userAgentClientHints, metadata.screenResolution,
+      metadata.viewport, metadata.connection, String(metadata.online),
+      metadata.referrer, metadata.sourceUrl,
     ]);
   } finally {
     lock.releaseLock();
@@ -675,14 +766,7 @@ function appendParticipant(name, email, status, message, dedication) {
 }
 
 function ensureHeaders(sheet) {
-  const headers = [
-    "Fecha",
-    "Nombre",
-    "Correo",
-    "Status",
-    "Message",
-    "Dedicatoria",
-  ];
+  const headers = PARTICIPANT_HEADERS;
   const lastRow = sheet.getLastRow();
   if (lastRow === 0) {
     sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
@@ -690,7 +774,7 @@ function ensureHeaders(sheet) {
   }
 
   const firstRow = sheet
-    .getRange(1, 1, 1, Math.max(5, sheet.getLastColumn()))
+    .getRange(1, 1, 1, Math.max(headers.length, sheet.getLastColumn()))
     .getDisplayValues()[0]
     .map((value) => String(value).trim().toLowerCase());
   const looksLikeHeader =

@@ -16,7 +16,7 @@ function blobToDataUrl(blob) {
 
 // Apps Script guarda el registro y envía las capturas con MailApp desde la
 // cuenta Google propietaria, sin exponer credenciales en GitHub Pages.
-export async function submitOfrenda({ name, email, dedication = '', status, message = '', captures = [] }) {
+export async function submitOfrenda({ name, email, dedication = '', status, message = '', captures = [], sessionId = '', metadata = {}, sessionDurationMs = 0 }) {
   if (!isSubmissionServiceConfigured()) {
     throw new Error('El servicio de envío no está configurado.');
   }
@@ -36,6 +36,6 @@ export async function submitOfrenda({ name, email, dedication = '', status, mess
     method: 'POST',
     mode: 'no-cors',
     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify({ name, email, dedication, status, message, captures: encodedCaptures })
+    body: JSON.stringify({ name, email, dedication, status, message, captures: encodedCaptures, sessionId, metadata, sessionDurationMs })
   });
 }

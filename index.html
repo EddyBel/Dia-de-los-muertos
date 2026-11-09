@@ -110,6 +110,15 @@
             <textarea id="dedication" name="dedication" maxlength="180" rows="3" placeholder="Si quieres, escribe unas palabras para recordarles…" class="field w-full resize-y rounded-xl px-4 py-3"></textarea>
             <span class="mt-1 block text-right text-xs text-rose-100/45"><span id="dedicationCount">0</span>/180</span>
           </label>
+          <label class="flex items-start gap-3 text-xs leading-5 text-rose-100/65">
+            <input id="consent" type="checkbox" required class="mt-1 accent-amber-400">
+            <span>
+              Acepto que mi nombre, correo y dedicatoria se utilicen para registrar mi participación.
+              También autorizo el registro de datos técnicos (idioma, zona horaria, navegador,
+              dispositivo, pantalla, conexión, referencia y URL de llegada) y eventos de uso
+              para diagnóstico y mejora de la experiencia. No se guardan las fotos originales.
+            </span>
+          </label>
         </div>
         <button id="wizardNext" type="button" class="wizard-primary mt-6 w-full">Continuar con las fotografías →</button>
       </section>
@@ -120,6 +129,7 @@
           <div>
             <label class="block text-sm text-amber-100">Fotografías para la ofrenda *</label>
             <p class="mt-1 text-xs text-rose-100/55">Elige de 1 a 5 imágenes. Se optimizan en tu dispositivo.</p>
+            <p class="mt-1 text-xs text-rose-100/55">Al enviar, se crearán cinco capturas y se mandarán al correo indicado; también podrás descargarlas como ZIP.</p>
           </div>
           <span id="photoCount" class="text-xs text-amber-300">0 / 5</span>
         </div>
@@ -142,24 +152,6 @@
              class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-5">
         </div>
       </div>
-
-      <label class="mt-6 flex items-start gap-3 text-xs leading-5 text-rose-100/65">
-        <input
-          id="consent"
-          type="checkbox"
-          required
-          class="mt-1 accent-amber-400">
-
-        <span>
-          Acepto que mi nombre, correo y dedicatoria se utilicen
-          para registrar mi participación.
-
-          Las fotos originales no se guardan en este sitio. Al enviar el formulario,
-          se crearán cinco capturas de la ofrenda y se enviarán a este correo mediante
-          la cuenta de correo que administra la página; también podrás descargarlas
-          como un archivo ZIP.
-        </span>
-      </label>
 
       <div class="mt-6 grid grid-cols-2 gap-3">
         <button id="wizardBack" type="button" class="wizard-secondary">← Atrás</button>

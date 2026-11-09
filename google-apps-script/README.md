@@ -61,3 +61,29 @@ segundos. Las cuotas pueden variar; el registro de la hoja guarda los errores.
 
 El correo muestra las cinco imágenes inline junto con la dedicatoria. El HTML se construye en `Code.gs`;
 `template-email.html` se conserva como referencia visual.
+
+## Metadatos y eventos de uso
+
+Los eventos y metadatos técnicos quedan en memoria del navegador hasta que la
+persona acepta el consentimiento del primer paso; en ese momento se envía el
+`page_view` con su hora original y los eventos posteriores. Si no acepta, no se
+envía telemetría. Al completar una participación, el backend añade estas columnas a
+`RESPUESTAS`: `Dedicatoria`, `Session ID`, duración, zona horaria, idioma,
+idiomas preferidos, sistema operativo aproximado, navegador, User-Agent,
+Client Hints, resolución, viewport, conexión, estado online, referencia y URL
+de origen. La dedicatoria se limita a 180 caracteres; los campos técnicos se
+recortan antes de guardarse.
+
+Los eventos se guardan en una pestaña separada llamada `EVENTOS`, que se crea
+automáticamente. Incluye `page_view`, `form_started`, `step_completed`,
+`photo_added`, `photo_removed`, `form_abandoned`, `submission_success`,
+`submission_error` y `session_duration`, con hora del servidor y del navegador,
+un ID de sesión aleatorio, contadores de fotos, bytes, duración y metadatos
+técnicos. No se envían las fotografías originales en estos eventos. Las URLs
+conservan parámetros de campaña, pero omiten parámetros comunes de autenticación
+y datos sensibles como `token`, `email`, `code` o `session`.
+
+Para activar el registro, copia la versión actualizada de `Code.gs`, guarda el
+proyecto y despliega una **nueva versión** de la aplicación web. La pestaña
+`EVENTOS` se crea cuando llega el primer evento; las columnas nuevas de
+`RESPUESTAS` aparecen al guardar la siguiente participación.

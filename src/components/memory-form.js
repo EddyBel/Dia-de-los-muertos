@@ -1,8 +1,14 @@
 import { closeImages, decodeImage, validatePhotoFiles } from '../services/image-service.js';
 import { isSubmissionServiceConfigured, submitOfrenda } from '../services/submission-service.js';
 import { downloadPhotoSession } from '../services/photo-session-download.js';
+import { createSessionTelemetry } from '../services/telemetry-service.js';
 
 export function setupMemoryForm({ loadAltar, mountGenerationScene }) {
+  const telemetry = createSessionTelemetry();
+  window.addEventListener('pagehide', () => telemetry.finish(), { once: true });
+  document.querySelector('#beginCreation')?.addEventListener('click', () => telemetry.startForm());
+  document.querySelector('#backToHome')?.addEventListener('click', () => telemetry.abandonForm());
+  if (!document.querySelector('#crear')?.hidden) telemetry.startForm();
   const form = document.querySelector('#memoryForm');
   const submitButton = document.querySelector('#submitBtn');
   const status = document.querySelector('#status');
@@ -34,6 +40,7 @@ export function setupMemoryForm({ loadAltar, mountGenerationScene }) {
   let photoSession = null;
   let altar = null;
   let step = 1;
+  let selectedFiles = [];
   const captureCardUrls = new Map();
 
   function resetCaptureCards() {
@@ -158,6 +165,8 @@ export function setupMemoryForm({ loadAltar, mountGenerationScene }) {
       invalid.focus();
       return;
     }
+    telemetry.grantConsent();
+    telemetry.stepCompleted(1);
     showStep(2);
   });
   document.querySelector('#wizardBack').addEventListener('click', () => showStep(1));
@@ -173,6 +182,10 @@ export function setupMemoryForm({ loadAltar, mountGenerationScene }) {
 
   function resetPhotos() {
     imageGeneration++;
+    if (selectedFiles.length) {
+      telemetry.photoRemoved(selectedFiles.length, selectedFiles.reduce((sum, file) => sum + file.size, 0));
+      selectedFiles = [];
+    }
     clearPreview();
     closeImages(loadedImages);
     loadedImages = [];
@@ -189,12 +202,19 @@ export function setupMemoryForm({ loadAltar, mountGenerationScene }) {
     photoSessionStatus.textContent = '';
     const generation = ++imageGeneration;
     const files = Array.from(fileInput.files || []);
+    if (selectedFiles.length) {
+      telemetry.photoRemoved(selectedFiles.length, selectedFiles.reduce((sum, file) => sum + file.size, 0));
+      selectedFiles = [];
+    }
     const validationMessage = validatePhotoFiles(files);
     if (validationMessage) {
       status.textContent = validationMessage;
       fileInput.value = '';
       return;
     }
+
+    selectedFiles = files;
+    telemetry.photoAdded(files.length, files.reduce((sum, file) => sum + file.size, 0));
 
     clearPreview();
     closeImages(loadedImages);
@@ -298,6 +318,7 @@ export function setupMemoryForm({ loadAltar, mountGenerationScene }) {
     setGenerationProgress(2, 'Preparando tus fotografías…');
 
     try {
+      telemetry.stepCompleted(2);
       altar = await loadAltar();
       altar.setImages(loadedImages);
       altar.setDedication(dedication);
@@ -330,12 +351,17 @@ export function setupMemoryForm({ loadAltar, mountGenerationScene }) {
         dedication,
         status: 'PENDIENTE',
         message: '',
-        captures: photoSession
+        captures: photoSession,
+        sessionId: telemetry.getSessionId(),
+        metadata: await telemetry.getMetadata(),
+        sessionDurationMs: telemetry.getDurationMs()
       });
+      telemetry.submissionSuccess();
       setGenerationProgress(100, 'Listo. Las capturas se enviaron para entrega por correo.');
       photoSessionStatus.textContent = `Solicitud enviada al servicio de correo para ${email}. También puedes descargar el ZIP aquí.`;
       status.textContent = 'Tu ofrenda fue generada correctamente.';
     } catch (error) {
+      telemetry.submissionError(error.message || error);
       console.error('Error generando o enviando la ofrenda:', error);
       photoSessionStatus.hidden = false;
       photoSessionStatus.textContent = photoSession

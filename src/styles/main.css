@@ -50,17 +50,6 @@ body.is-home-view::-webkit-scrollbar { display: none; }
   white-space: nowrap;
 }
 .ambient-audio__action { flex: 0 0 auto; color: #ffd14f; font-size: .68rem; }
-.ambient-audio__player {
-  position: fixed;
-  left: -10000px;
-  top: 0;
-  width: 200px;
-  height: 200px;
-  overflow: hidden;
-  pointer-events: none;
-}
-.ambient-audio__player iframe { width: 200px; height: 200px; }
-
 body {
   background: #160d18;
   color: #fff7e8;

@@ -28,12 +28,13 @@ La escena reúne el altar, fotografías, flores de cempasúchil y una dedicatori
 - [x] **Escena para móviles** — Ajusta recursos gráficos y modelos de flores para reducir el costo de renderizado en teléfonos.
 - [x] **Flores según participaciones** — El Hero empieza sin flores y actualiza su cantidad al recibir el conteo de Google Sheets.
 - [x] **Lluvia de pétalos** — Añade partículas ligeras a la escena.
-- [x] **Música ambiental** — Reproduce aleatoriamente una playlist de YouTube y permite silenciarla desde la página.
+- [x] **Música ambiental local** — Reproduce aleatoriamente los MP3 de `public/musica`, muestra el nombre del archivo y permite silenciarla.
 - [x] **Pantalla completa** — Permite ampliar la escena para verla con más detalle.
 
 ### Crear y compartir un homenaje
 
-- [x] **Formulario por pasos** — Solicita nombre, correo, dedicatoria opcional y de una a cinco fotografías.
+- [x] **Formulario por pasos** — Solicita nombre, correo, dedicatoria opcional y hasta tres fotografías.
+- [x] **Marcos completos** — Si se suben dos fotos, la primera se repite en el tercer marco; si se sube una, ocupa el marco central.
 - [x] **Imágenes optimizadas en el dispositivo** — Prepara las fotos en el navegador antes de incorporarlas al altar.
 - [x] **Dedicatoria en la escena** — Muestra las palabras elegidas junto al modelo 3D.
 - [x] **Sesión de cinco capturas** — Genera vistas frontal, tres cuartos derecha, tres cuartos izquierda, picada y contrapicada.
@@ -51,7 +52,7 @@ Abre la página con `?dev=1` para mostrar el panel de herramientas. Incluye info
 ├── index.html                    # Vistas y estructura de la página
 ├── src/
 │   ├── main.js                   # Arranque y coordinación de la aplicación
-│   ├── config.js                 # Apps Script y playlist ambiental
+│   ├── config.js                 # Apps Script y configuración de audio
 │   ├── components/               # Formulario, escena, controles y navegación
 │   ├── services/                 # Envíos, conteo, letras e imágenes
 │   └── styles/main.css           # Estilos y comportamiento responsive
@@ -59,6 +60,7 @@ Abre la página con `?dev=1` para mostrar el panel de herramientas. Incluye info
 │   ├── backgrounds/              # Fondos del sitio y de la escena
 │   ├── hero/                     # Recursos visuales del Hero
 │   ├── images/                   # Loader y recursos de interfaz
+│   ├── musica/                   # MP3 ambientales y manifiesto de pistas
 │   ├── models/                   # Modelos 3D y variantes de flores
 │   └── textures/                 # Texturas del piso y del altar
 ├── google-apps-script/
@@ -80,9 +82,10 @@ No se necesita Node.js, `npm install` ni un paso de compilación para ejecutar o
 
 ## Ejecutar localmente
 
-Desde la carpeta del proyecto, inicia un servidor estático:
+Genera la lista de canciones y después inicia un servidor estático:
 
 ```bash
+python3 scripts/build-music-manifest.py
 python3 -m http.server 8000
 ```
 
@@ -94,7 +97,7 @@ La escena y el formulario pueden abrirse localmente, pero el registro, el conteo
 
 ### Apps Script
 
-`src/config.js` contiene la URL pública de la aplicación web de Apps Script y la playlist de YouTube. El endpoint se usa para registrar formularios, consultar el número de participaciones y solicitar el almacenamiento de letras de canciones.
+`src/config.js` contiene la URL pública de la aplicación web de Apps Script y la ruta del manifiesto de música. El endpoint se usa para registrar formularios, consultar el número de participaciones y almacenar letras de canciones.
 
 Para conectar o actualizar el backend:
 
@@ -107,11 +110,13 @@ La guía del backend está en [google-apps-script/README.md](./google-apps-scrip
 
 ### Música
 
-La URL de la playlist, el volumen y la reproducción automática están definidos en `ambientMusicConfig`, en [src/config.js](./src/config.js). La reproducción automática puede depender de las políticas del navegador; si el navegador la bloquea, la persona tendrá que iniciar la reproducción desde el control de música.
+Agrega archivos `.mp3` a `public/musica/`. El manifiesto se genera automáticamente durante el despliegue; al probar localmente, vuelve a ejecutar `python3 scripts/build-music-manifest.py` después de agregar canciones. El nombre del archivo, sin la extensión, es el título que aparece en el reproductor. La selección se hace aleatoriamente y evita repetir la canción anterior cuando hay más de una.
+
+El volumen y la reproducción automática están definidos en `ambientMusicConfig`, en [src/config.js](./src/config.js). En móviles el reproductor espera a que termine de cargar el altar. El navegador puede bloquear el autoplay; si ocurre, inicia la música desde su control.
 
 ## Publicar en GitHub Pages
 
-El workflow [deploy-pages.yml](./.github/workflows/deploy-pages.yml) publica el sitio cuando hay cambios en la rama `main`, o cuando se ejecuta manualmente desde GitHub Actions.
+El workflow [deploy-pages.yml](./.github/workflows/deploy-pages.yml) publica el sitio cuando hay cambios en la rama `main`, o cuando se ejecuta manualmente desde GitHub Actions. En cada despliegue genera el manifiesto con todos los MP3 que encuentre en `public/musica/`.
 
 Para habilitarlo:
 
@@ -119,14 +124,14 @@ Para habilitarlo:
 2. Selecciona **GitHub Actions** como origen de publicación.
 3. Envía los cambios a `main` o ejecuta el workflow **Publish website to GitHub Pages**.
 
-El workflow prepara `index.html`, `src/` y `public/` como sitio estático y los publica sin compilar.
+El workflow prepara el sitio, copia los recursos usados y genera el manifiesto de audio antes de publicarlo.
 
 ## Datos y servicios
 
 - **Google Sheets / Apps Script** — Guarda los registros y su estado, devuelve solo el conteo público de participaciones y envía la sesión de fotos mediante `MailApp`.
 - **Metadatos y eventos** — `RESPUESTAS` conserva la dedicatoria y los metadatos técnicos de la sesión; `EVENTOS` registra visitas, pasos del wizard, cambios en las fotos, resultado del envío, abandonos y duración aproximada.
-- **LRCLIB** — Cuando empieza una canción, Apps Script busca primero en la pestaña `CANCIONES`; si no encuentra una consulta previa válida, solicita las letras a LRCLIB y guarda tanto las marcas de tiempo como el texto plano. Las letras no se muestran en la web.
-- **YouTube** — Proporciona la reproducción ambiental y los metadatos de la playlist.
+- **Música local** — Los MP3 se sirven desde `public/musica/`; el reproductor no carga el iframe ni la API de YouTube.
+- **LRCLIB** — Cuando empieza una canción, Apps Script busca primero en la pestaña `CANCIONES`; si no encuentra una consulta previa válida, solicita las letras a LRCLIB y guarda tanto las marcas de tiempo como el texto plano. Los nombres con formato `Artista - Canción` permiten buscar el artista; las letras no se muestran en la web.
 
 Las fotografías originales se procesan en el navegador; las capturas generadas se envían al backend para el correo y permanecen disponibles en la sesión para su descarga. Los eventos técnicos se mantienen en memoria hasta que la persona acepta el consentimiento antes de subir fotos; si no acepta, no se envían a la hoja. El sitio no incluye una base de datos propia ni almacenamiento permanente de las fotografías.
 

@@ -190,7 +190,7 @@ export function setupMemoryForm({ loadAltar, mountGenerationScene }) {
     closeImages(loadedImages);
     loadedImages = [];
     fileInput.value = '';
-    photoCount.textContent = '0 / 5';
+    photoCount.textContent = '0 / 3';
     altar?.setImages();
   }
 
@@ -202,10 +202,6 @@ export function setupMemoryForm({ loadAltar, mountGenerationScene }) {
     photoSessionStatus.textContent = '';
     const generation = ++imageGeneration;
     const files = Array.from(fileInput.files || []);
-    if (selectedFiles.length) {
-      telemetry.photoRemoved(selectedFiles.length, selectedFiles.reduce((sum, file) => sum + file.size, 0));
-      selectedFiles = [];
-    }
     const validationMessage = validatePhotoFiles(files);
     if (validationMessage) {
       status.textContent = validationMessage;
@@ -213,6 +209,10 @@ export function setupMemoryForm({ loadAltar, mountGenerationScene }) {
       return;
     }
 
+    if (selectedFiles.length) {
+      telemetry.photoRemoved(selectedFiles.length, selectedFiles.reduce((sum, file) => sum + file.size, 0));
+      selectedFiles = [];
+    }
     selectedFiles = files;
     telemetry.photoAdded(files.length, files.reduce((sum, file) => sum + file.size, 0));
 
@@ -235,7 +235,7 @@ export function setupMemoryForm({ loadAltar, mountGenerationScene }) {
       card.append(image, name);
       preview.append(card);
     });
-    photoCount.textContent = `${files.length} / 5`;
+    photoCount.textContent = `${files.length} / 3`;
 
     try {
       const images = await Promise.all(files.map(decodeImage));

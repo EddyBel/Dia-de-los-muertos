@@ -1,69 +1,18 @@
 import { ambientMusicConfig } from '../config.js';
 import { cachePlayingTrackLyrics } from '../services/lyrics-cache-service.js';
 
-const API_URL = 'https://www.youtube.com/iframe_api';
-const PLAYER_SIZE = 200;
-
-function readSource(sourceUrl) {
-  const url = new URL(sourceUrl);
-  const playlistId = url.searchParams.get('list');
-  const videoId = url.searchParams.get('v') ||
-    (url.hostname === 'youtu.be' ? url.pathname.slice(1) : null);
-
-  if (!playlistId && !videoId) throw new Error('La URL debe incluir un video o una playlist de YouTube.');
-  return { playlistId, videoId };
-}
-
-function loadYouTubeApi() {
-  if (window.YT?.Player) return Promise.resolve(window.YT);
-  if (window.__ambientYoutubeApiPromise) return window.__ambientYoutubeApiPromise;
-
-  window.__ambientYoutubeApiPromise = new Promise((resolve, reject) => {
-    const previousReady = window.onYouTubeIframeAPIReady;
-    const timeout = window.setTimeout(() => reject(new Error('YouTube tardó demasiado en responder.')), 15000);
-
-    window.onYouTubeIframeAPIReady = () => {
-      window.clearTimeout(timeout);
-      previousReady?.();
-      resolve(window.YT);
-    };
-
-    if (!document.querySelector(`script[src="${API_URL}"]`)) {
-      const script = document.createElement('script');
-      script.src = API_URL;
-      script.async = true;
-      script.onerror = () => {
-        window.clearTimeout(timeout);
-        reject(new Error('No se pudo cargar el reproductor de YouTube.'));
-      };
-      document.head.append(script);
-    }
-  });
-
-  return window.__ambientYoutubeApiPromise;
-}
-
-export function setupAmbientAudio() {
+export function setupAmbientAudio({ deferUntil = null } = {}) {
   const toggle = document.querySelector('#ambientAudioToggle');
   const title = document.querySelector('#ambientAudioTitle');
   const action = document.querySelector('#ambientAudioAction');
-  const mount = document.querySelector('#ambientYoutubePlayer');
-  if (!toggle || !title || !action || !mount) return;
+  if (!toggle || !title || !action) return;
 
-  let source;
-  try {
-    source = readSource(ambientMusicConfig.url);
-  } catch (error) {
-    title.textContent = 'Música no disponible';
-    toggle.disabled = true;
-    console.warn(error);
-    return;
-  }
-
-  let player;
-  let ready = false;
+  let audio;
+  let tracks = [];
+  let currentIndex = -1;
   let active = false;
   let muted = false;
+  let ready = false;
   let autoplayBlocked = false;
   let currentTitle = 'Música ambiental';
   let lastLyricsTrackKey = '';
@@ -78,125 +27,126 @@ export function setupAmbientAudio() {
     action.textContent = active ? (muted ? '🔇' : '🔊') : '▶';
   };
 
-  const startPlayback = target => {
-    autoplayBlocked = false;
-    muted = false;
-    target.unMute();
-    target.setVolume(ambientMusicConfig.volume);
-    if (source.playlistId) {
-      target.setShuffle(true);
-      target.setLoop(true);
-      const playlist = target.getPlaylist() || [];
-      if (playlist.length > 1) {
-        target.playVideoAt(Math.floor(Math.random() * playlist.length));
-      } else {
-        target.playVideo();
-      }
-    } else {
-      target.playVideo();
-    }
+  function chooseNextTrack() {
+    if (!tracks.length) return null;
+    if (tracks.length === 1) return 0;
+    let nextIndex = currentIndex;
+    while (nextIndex === currentIndex) nextIndex = Math.floor(Math.random() * tracks.length);
+    return nextIndex;
+  }
+
+  function getTrackUrl(file) {
+    const encodedPath = file.split('/').map(part => encodeURIComponent(part)).join('/');
+    return new URL(encodedPath, ambientMusicConfig.manifestUrl).href;
+  }
+
+  async function playRandomTrack() {
+    const nextIndex = chooseNextTrack();
+    if (nextIndex === null) return;
+    currentIndex = nextIndex;
+    const track = tracks[currentIndex];
+    currentTitle = track.title;
+    audio.src = getTrackUrl(track.file);
+    audio.load();
     updateControl();
-  };
+    await playCurrentTrack();
+  }
 
-  toggle.disabled = true;
-  title.textContent = 'Preparando música…';
+  async function playCurrentTrack() {
+    if (!audio) return;
+    autoplayBlocked = false;
+    audio.muted = muted;
+    try {
+      await audio.play();
+    } catch (error) {
+      active = false;
+      autoplayBlocked = true;
+      updateControl();
+      console.info('El navegador requiere una interacción para iniciar la música:', error);
+    }
+  }
 
-  loadYouTubeApi()
-    .then(YT => new Promise((resolve, reject) => {
-      const playerVars = {
-        autoplay: 0,
-        controls: 0,
-        playsinline: 1,
-        rel: 0,
-        modestbranding: 1,
-        origin: location.origin,
-      };
+  function recordCurrentTrackLyrics() {
+    const track = tracks[currentIndex];
+    if (!track) return;
+    const key = track.file;
+    if (key === lastLyricsTrackKey) return;
+    lastLyricsTrackKey = key;
+    cachePlayingTrackLyrics({ title: track.title, artist: '' })
+      .then(result => {
+        console.info(`Estado de letra de “${track.title}”: ${result.status}${result.cached ? ' (hoja)' : ''}`);
+      })
+      .catch(error => console.warn(`No se pudo registrar la letra de “${track.title}”:`, error));
+  }
 
-      if (source.playlistId) {
-        playerVars.listType = 'playlist';
-        playerVars.list = source.playlistId;
-      } else {
-        playerVars.loop = 1;
-        playerVars.playlist = source.videoId;
-      }
+  const initializePlayer = async () => {
+    try {
+      const response = await fetch(ambientMusicConfig.manifestUrl, { cache: 'no-cache' });
+      if (!response.ok) throw new Error(`No se pudo leer la lista de música (${response.status}).`);
+      const manifest = await response.json();
+      tracks = Array.isArray(manifest)
+        ? manifest.filter(track => typeof track?.file === 'string' && typeof track?.title === 'string')
+        : [];
+      if (!tracks.length) throw new Error('No hay archivos MP3 en public/musica.');
 
-      try {
-        player = new YT.Player(mount, {
-          width: PLAYER_SIZE,
-          height: PLAYER_SIZE,
-          ...(source.playlistId ? {} : { videoId: source.videoId }),
-          playerVars,
-          events: {
-            onReady(event) {
-              ready = true;
-              toggle.disabled = false;
-              if (ambientMusicConfig.autoplay) startPlayback(event.target);
-              updateControl();
-              resolve();
-            },
-            onStateChange(event) {
-              if (event.data === YT.PlayerState.PLAYING) {
-                active = true;
-                const videoData = event.target.getVideoData() || {};
-                const trackTitle = videoData.title?.trim();
-                currentTitle = trackTitle || 'Música ambiental';
-                muted = event.target.isMuted();
-                autoplayBlocked = false;
-                updateControl();
-                const trackKey = videoData.video_id || `${trackTitle}|${videoData.author || ''}`;
-                if (trackTitle && trackKey !== lastLyricsTrackKey) {
-                  lastLyricsTrackKey = trackKey;
-                  cachePlayingTrackLyrics({
-                    title: trackTitle,
-                    artist: String(videoData.author || '').replace(/\s+-\s+Topic$/i, '')
-                  }).then(result => {
-                    console.info(`Estado de letra de “${trackTitle}”: ${result.status}${result.cached ? ' (hoja)' : ''}`);
-                  }).catch(error => console.warn(`No se pudo registrar la letra de “${trackTitle}”:`, error));
-                }
-              } else if (event.data === YT.PlayerState.PAUSED || event.data === YT.PlayerState.ENDED) {
-                active = false;
-                updateControl();
-              }
-            },
-            onError(error) {
-              console.warn('YouTube no pudo reproducir la música ambiental:', error.data);
-              title.textContent = 'Música no disponible';
-              toggle.disabled = true;
-              reject(new Error(`YouTube rechazó la reproducción (${error.data}).`));
-            },
-            onAutoplayBlocked() {
-              active = false;
-              autoplayBlocked = true;
-              updateControl();
-            },
-          },
-        });
-      } catch (error) {
-        reject(error);
-      }
-    }))
-    .catch(error => {
+      audio = new Audio();
+      audio.preload = 'none';
+      audio.volume = Math.max(0, Math.min(1, Number(ambientMusicConfig.volume) || 0));
+      audio.addEventListener('play', () => {
+        active = true;
+        autoplayBlocked = false;
+        updateControl();
+        recordCurrentTrackLyrics();
+      });
+      audio.addEventListener('pause', () => {
+        active = false;
+        updateControl();
+      });
+      audio.addEventListener('ended', () => {
+        active = false;
+        playRandomTrack();
+      });
+      audio.addEventListener('error', () => {
+        if (!audio.src) return;
+        active = false;
+        ready = false;
+        toggle.disabled = true;
+        title.textContent = `No se pudo cargar: ${currentTitle}`;
+        action.textContent = '▶';
+        console.warn('No se pudo reproducir el archivo de música:', audio.currentSrc);
+      });
+
+      ready = true;
+      toggle.disabled = false;
+      if (ambientMusicConfig.autoplay) await playRandomTrack();
+      else updateControl();
+    } catch (error) {
       title.textContent = 'Música no disponible';
       toggle.disabled = true;
       console.warn('No se pudo preparar la música ambiental:', error);
-    });
+    }
+  };
 
-  toggle.addEventListener('click', () => {
-    if (!ready || !player) return;
+  toggle.disabled = true;
+  title.textContent = deferUntil ? 'Cargando el altar antes de la música…' : 'Preparando música…';
+  if (deferUntil && typeof deferUntil.then === 'function') deferUntil.then(initializePlayer);
+  else initializePlayer();
 
-    if (!active) {
-      startPlayback(player);
+  toggle.addEventListener('click', async () => {
+    if (!ready || !audio) return;
+    if (active && !muted) {
+      muted = true;
+      audio.muted = true;
+      updateControl();
       return;
     }
-
-    if (muted) {
-      player.unMute();
-      player.setVolume(ambientMusicConfig.volume);
+    if (active && muted) {
       muted = false;
-    } else {
-      player.mute();
-      muted = true;
+      audio.muted = false;
+      updateControl();
+      return;
     }
-    updateControl();
+    if (currentIndex < 0) await playRandomTrack();
+    else await playCurrentTrack();
   });
 }

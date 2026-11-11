@@ -31,9 +31,35 @@ jobs:
 
       - name: Assemble static site
         run: |
-          mkdir -p dist
+          mkdir -p \
+            dist/public/backgrounds \
+            dist/public/images \
+            dist/public/musica \
+            dist/public/models/altar-textured/mobile \
+            dist/public/models/altar-de-dia-de-muertos-ofrenda-mexicana-decorativa-model_files \
+            dist/public/textures
           cp index.html dist/
-          cp -R src public dist/
+          cp -R src dist/
+
+          # Copy only assets used by the live site. The repository also keeps
+          # source archives, the untextured alternate model, and texture-bake
+          # references that are not requested by the browser.
+          cp public/backgrounds/ofrenda-0*.jpg dist/public/backgrounds/
+          cp public/backgrounds/escena-modelo.jpg public/backgrounds/escena-modelo-mobile.webp dist/public/backgrounds/
+          cp public/images/calavera-loader.svg dist/public/images/
+          cp -R public/musica/. dist/public/musica/
+          python3 scripts/build-music-manifest.py --source public/musica --output dist/public/musica/playlist.json
+          cp public/models/altar-textured/altar.obj dist/public/models/altar-textured/
+          cp public/models/altar-textured/diffuse.png public/models/altar-textured/normal.png public/models/altar-textured/roughness.png dist/public/models/altar-textured/
+          cp public/models/altar-textured/mobile/diffuse.webp public/models/altar-textured/mobile/normal.webp public/models/altar-textured/mobile/roughness.webp dist/public/models/altar-textured/mobile/
+          cp public/models/cempasuchil-floor-200.glb public/models/cempasuchil-floor-200-mobile.glb dist/public/models/
+          cp public/models/altar-de-dia-de-muertos-ofrenda-mexicana-decorativa-model_files/diademuertos_ofrenda_altar_v1.stl dist/public/models/altar-de-dia-de-muertos-ofrenda-mexicana-decorativa-model_files/
+          cp public/textures/piso-barro.jpg dist/public/textures/
+
+          echo "Published site size:"
+          du -sh dist
+          echo "Largest published files:"
+          find dist -type f -printf '%s %p\n' | sort -nr | head -10
           touch dist/.nojekyll
 
       - name: Upload Pages artifact

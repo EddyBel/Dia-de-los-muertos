@@ -5,7 +5,10 @@ import { setupAmbientAudio } from './components/ambient-audio.js';
 import { getRegisteredParticipantCount } from './services/participant-count-service.js';
 
 startBackgroundSlideshow();
-setupAmbientAudio();
+const isMobileProfile = matchMedia('(max-width: 768px), (pointer: coarse)').matches;
+let resolveHeroSceneReady;
+const heroSceneReady = new Promise(resolve => { resolveHeroSceneReady = resolve; });
+setupAmbientAudio({ deferUntil: isMobileProfile ? heroSceneReady : null });
 
 const altarViewport = document.querySelector('#altarViewport');
 const heroSceneSlot = document.querySelector('#heroSceneSlot');
@@ -97,6 +100,7 @@ loadAltar()
   .then(async altar => {
     await altar.setModelVariant('textured');
     await new Promise(requestAnimationFrame);
+    resolveHeroSceneReady();
     const homeView = document.querySelector('#homeView');
     const heroCopy = document.querySelector('#heroCopy');
     homeView?.classList.add('is-scene-ready');
@@ -116,7 +120,10 @@ loadAltar()
     }
     document.body.classList.add('is-home-scene-ready');
   })
-  .catch(error => console.warn('No se pudo precargar la escena del hero:', error));
+  .catch(error => {
+    resolveHeroSceneReady();
+    console.warn('No se pudo precargar la escena del hero:', error);
+  });
 
 const developerToggle = document.querySelector('#developerToolsToggle');
 if (new URLSearchParams(location.search).get('dev') === '1') {

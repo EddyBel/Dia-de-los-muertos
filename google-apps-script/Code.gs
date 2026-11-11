@@ -6,7 +6,7 @@ const LYRICS_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const MAX_LYRICS_CELL_CHARS = 45000;
 const LYRICS_HEADERS = [
   "Fecha y hora",
-  "Nombre en YouTube",
+  "Nombre de archivo",
   "Artista",
   "Nombre LRCLIB",
   "Letra sincronizada",
@@ -148,9 +148,9 @@ function doGet(event) {
   }
 }
 
-function getLyricsForTrack_(youtubeTitle, youtubeArtist) {
-  const title = String(youtubeTitle || "").trim().slice(0, 240);
-  const track = extractYoutubeTrack_(title, youtubeArtist);
+function getLyricsForTrack_(sourceTitle, sourceArtist) {
+  const title = String(sourceTitle || "").trim().slice(0, 240);
+  const track = extractTrack_(title, sourceArtist);
   const artist = track.artist.slice(0, 180);
   if (!title) return { ok: true, status: "SIN_TITULO", cached: false };
 
@@ -214,7 +214,7 @@ function getLyricsSheet_() {
     .map((value) => String(value).trim().toLowerCase());
   const looksLikeHeader =
     /fecha|date|timestamp/.test(firstRow[0]) &&
-    /youtube|cancion|canción|nombre/.test(firstRow[1]);
+    /archivo|cancion|canción|nombre/.test(firstRow[1]);
   if (!firstRow[0]) {
     sheet.getRange(1, 1, 1, LYRICS_HEADERS.length).setValues([LYRICS_HEADERS]);
   } else {
@@ -225,11 +225,11 @@ function getLyricsSheet_() {
   return sheet;
 }
 
-function findLyricsCache_(sheet, youtubeTitle, youtubeArtist) {
+function findLyricsCache_(sheet, sourceTitle, sourceArtist) {
   const lastRow = sheet.getLastRow();
   if (lastRow < 2) return null;
-  const titleKey = normalizeLyricsKey_(youtubeTitle);
-  const artistKey = normalizeLyricsKey_(youtubeArtist);
+  const titleKey = normalizeLyricsKey_(sourceTitle);
+  const artistKey = normalizeLyricsKey_(sourceArtist);
   const rows = sheet.getRange(2, 1, lastRow - 1, LYRICS_HEADERS.length).getValues();
   let latest = null;
   let latestSuccess = null;
@@ -279,7 +279,7 @@ function normalizeLyricsKey_(value) {
     .replace(/\s+/g, " ");
 }
 
-function appendLyricsResult_(sheet, youtubeTitle, youtubeArtist, result) {
+function appendLyricsResult_(sheet, sourceTitle, sourceArtist, result) {
   const syncedLyrics = String(result.syncedLyrics || "");
   const plainLyrics = String(result.plainLyrics || "");
   let status = result.status;
@@ -294,27 +294,27 @@ function appendLyricsResult_(sheet, youtubeTitle, youtubeArtist, result) {
   const row = sheet.getLastRow() + 1;
   sheet.getRange(row, 1, 1, LYRICS_HEADERS.length).setValues([[
     new Date(),
-    youtubeTitle,
-    result.artistName || youtubeArtist,
+    sourceTitle,
+    result.artistName || sourceArtist,
     result.trackName || "",
     status === "ERROR_LIMITE_HOJA" ? "" : syncedLyrics,
     status,
     status === "ERROR_LIMITE_HOJA" ? "" : plainLyrics,
-    youtubeArtist,
+    sourceArtist,
   ]]);
   sheet.getRange(row, 1).setNumberFormat("yyyy-mm-dd hh:mm:ss");
 }
 
-function lookupLyricsAtLrclib_(trackTitle, youtubeArtist) {
-  const normalizedTitle = cleanYoutubeTrackTitle_(trackTitle);
+function lookupLyricsAtLrclib_(trackTitle, sourceArtist) {
+  const normalizedTitle = cleanTrackTitle_(trackTitle);
   if (!normalizedTitle) return { status: "SIN_LETRA" };
 
-  if (youtubeArtist) {
+  if (sourceArtist) {
     const exactUrl =
       "https://lrclib.net/api/get?track_name=" +
       encodeURIComponent(normalizedTitle) +
       "&artist_name=" +
-      encodeURIComponent(youtubeArtist);
+      encodeURIComponent(sourceArtist);
     const exactResponse = fetchLrclib_(exactUrl);
     if (exactResponse.status === 200) {
       const record = parseLrclibRecord_(exactResponse.body);
@@ -329,7 +329,7 @@ function lookupLyricsAtLrclib_(trackTitle, youtubeArtist) {
   }
 
   const params = ["track_name=" + encodeURIComponent(normalizedTitle)];
-  if (youtubeArtist) params.push("artist_name=" + encodeURIComponent(youtubeArtist));
+  if (sourceArtist) params.push("artist_name=" + encodeURIComponent(sourceArtist));
   const searchResponse = fetchLrclib_("https://lrclib.net/api/search?" + params.join("&"));
   if (searchResponse.status !== 200) {
     return {
@@ -346,7 +346,7 @@ function lookupLyricsAtLrclib_(trackTitle, youtubeArtist) {
   }
   if (!Array.isArray(candidates)) return { status: "ERROR_API_RESPUESTA" };
 
-  const match = chooseLrclibMatch_(candidates, normalizedTitle, youtubeArtist);
+  const match = chooseLrclibMatch_(candidates, normalizedTitle, sourceArtist);
   return match ? toLyricsResult_(match) : { status: "SIN_LETRA" };
 }
 
@@ -427,7 +427,7 @@ function toLyricsResult_(record) {
   };
 }
 
-function cleanYoutubeTrackTitle_(title) {
+function cleanTrackTitle_(title) {
   return String(title || "")
     .replace(/[[(](?:official|lyrics?|audio|music video|lyric video|visuali[sz]er|hd|4k|live|video)[^\])]*[\])]/gi, " ")
     .replace(/\s*[-|–]\s*(?:official.*|lyrics?|audio|music video|lyric video|visuali[sz]er)\s*$/i, "")
@@ -435,8 +435,8 @@ function cleanYoutubeTrackTitle_(title) {
     .trim();
 }
 
-function extractYoutubeTrack_(youtubeTitle, youtubeArtist) {
-  const cleaned = cleanYoutubeTrackTitle_(youtubeTitle);
+function extractTrack_(sourceTitle, sourceArtist) {
+  const cleaned = cleanTrackTitle_(sourceTitle);
   const parts = cleaned.split(/\s+[–—-]\s+/).filter(Boolean);
   if (parts.length >= 2 && parts[0].length <= 90) {
     return {
@@ -445,7 +445,7 @@ function extractYoutubeTrack_(youtubeTitle, youtubeArtist) {
     };
   }
   return {
-    artist: String(youtubeArtist || "").replace(/\s+-\s+Topic$/i, "").trim(),
+    artist: String(sourceArtist || "").trim(),
     trackTitle: cleaned,
   };
 }

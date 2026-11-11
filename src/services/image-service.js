@@ -23,7 +23,7 @@ export function closeImages(images) {
 }
 
 export function validatePhotoFiles(files) {
-  if (files.length > 5) return 'Puedes seleccionar máximo 5 fotografías.';
+  if (files.length > 3) return 'Puedes seleccionar máximo 3 fotografías.';
 
   const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
   if (files.some(file => !validTypes.includes(file.type))) {

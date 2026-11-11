@@ -12,16 +12,17 @@ visible. La escena de generación y las capturas mantienen 100 flores. El Hero
 usa una flor por registro, con un máximo visible de 200 según el modelo
 precargado.
 
-Cuando YouTube empieza una canción de la playlist, la página envía su título y
-artista al Apps Script. Este busca primero en la pestaña `CANCIONES`; si no hay
+Cuando empieza a reproducirse un MP3 de `public/musica`, la página envía el
+nombre del archivo al Apps Script como título de la canción. Este busca primero
+en la pestaña `CANCIONES`; si no hay
 un resultado previo, consulta LRCLIB y guarda el resultado. Las letras nunca se
 devuelven al navegador ni se muestran en la web. Los hallazgos se guardan en
 `E` como `syncedLyrics` LRC y en `G` como `plainLyrics`; `F` registra el estado.
 Los estados sin letra o con error evitan otra llamada a LRCLIB por 24 horas.
-El Apps Script crea `CANCIONES` y sus encabezados automáticamente. Si el título
-de YouTube viene como `Artista - Canción`, separa ambas partes para buscar el
-intérprete real en lugar del nombre del canal; la columna `H` oculta guarda la
-clave para reutilizar el resultado. Los fallos de conexión incluyen su detalle
+El Apps Script crea `CANCIONES` y sus encabezados automáticamente. Si el nombre
+del archivo viene como `Artista - Canción`, separa ambas partes para buscar el
+intérprete; la columna `H` oculta guarda la clave para reutilizar el resultado.
+Los fallos de conexión incluyen su detalle
 en `Status` para facilitar el diagnóstico.
 
 Si el conteo no actualiza, abre la URL de implementación con

@@ -722,14 +722,11 @@ export function createAltar(canvas) {
 
     let frameIndexes;
     if (selectedImages.length === 1) frameIndexes = [1];
-    else if (selectedImages.length === 2) frameIndexes = [0, 2];
     else frameIndexes = [0, 1, 2];
 
     frameIndexes.forEach((frameIndex, cardIndex) => {
       const frame = mappedFrames[frameIndex];
-      const imageIndex = selectedImages.length > photoFrames.length
-        ? (cardIndex % selectedImages.length)
-        : cardIndex;
+      const imageIndex = cardIndex % selectedImages.length;
       const card = new THREE.Mesh(
         new THREE.PlaneGeometry(
           frame.aperture.width * placement.scale,
@@ -807,7 +804,7 @@ export function createAltar(canvas) {
   }
 
   function setImages(images = []) {
-    selectedImages = images.slice(0, 5);
+    selectedImages = images.slice(0, 3);
     renderPhotoFrames();
     scheduleAnimation();
   }
